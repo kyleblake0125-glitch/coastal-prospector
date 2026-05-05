@@ -46,7 +46,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);transition:back
 .screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:none;scrollbar-width:none}
 .screen::-webkit-scrollbar{display:none}
 .screen.active{display:block}
-#screen-map{padding:0;overflow:hidden;position:relative}
+#screen-map{padding:0;overflow:hidden;position:absolute;inset:0}
 #screen-analytics{padding:14px}
 /* NAV */
 .bnav{display:flex;background:var(--navyd);border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -184,7 +184,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .mt8{margin-top:8px}
 .row-flex{display:flex;gap:9px}
 /* MAP */
-#mapContainer{width:100%;height:100%}
+#mapContainer{width:100%;height:100%;min-height:400px}
 .map-controls{position:absolute;top:10px;left:10px;right:10px;z-index:1000;pointer-events:none}
 .map-top-row{display:flex;justify-content:flex-start;gap:6px;pointer-events:all;flex-wrap:wrap}
 .mpbtn{background:rgba(7,29,46,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:8px 13px;font-size:11px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;gap:5px;box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:all;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
@@ -716,7 +716,7 @@ const BOUNDS=L.latLngBounds(L.latLng(39.5,-124.5),L.latLng(42.1,-120.0));
 const CENTER=[40.8,-122.3];
 const STREET='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const SAT='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-const LABELS='https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}';
+const LABELS='https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png';
 
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function now(){return new Date().toISOString()}
@@ -1255,19 +1255,23 @@ function saveLead(){
 // MAP
 // ══════════════════════════════════════════════════════
 function initMap(){
-  if(map){refreshMapMarkers();return;}
+  if(map){
+    setTimeout(()=>{map.invalidateSize();refreshMapMarkers();},100);
+    return;
+  }
+  // Use a reliable hybrid tile source (OpenStreetMap sat via Esri + OSM road overlay)
   map=L.map('mapContainer',{center:CENTER,zoom:9,maxBounds:BOUNDS,maxBoundsViscosity:0.9,minZoom:7,maxZoom:18,zoomControl:false});
   L.control.zoom({position:'bottomright'}).addTo(map);
-  streetLayer=L.tileLayer(STREET,{attribution:'© OpenStreetMap contributors',maxZoom:19});
-  satLayer=L.tileLayer(SAT,{attribution:'© Esri',maxZoom:19});
-  labelsLayer=L.tileLayer(LABELS,{attribution:'© Esri',maxZoom:19,opacity:1});
-  // Default: satellite + labels (hybrid)
+  streetLayer=L.tileLayer(STREET,{attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',maxZoom:19});
+  satLayer=L.tileLayer(SAT,{attribution:'Tiles &copy; Esri &mdash; Source: Esri, Maxar, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',maxZoom:19});
+  labelsLayer=L.tileLayer(LABELS,{attribution:'&copy; <a href="https://carto.com">CARTO</a>',maxZoom:19,subdomains:'abcd',opacity:0.9});
+  // Default to satellite hybrid (sat imagery + road/business labels on top)
   satOn=true;
   satLayer.addTo(map);
   labelsLayer.addTo(map);
   document.getElementById('satBtn').classList.add('on');
   map.on('click',onMapClick);
-  refreshMapMarkers();
+  setTimeout(()=>{map.invalidateSize();refreshMapMarkers();},200);
 }
 function toggleSat(){
   satOn=!satOn;
