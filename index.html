@@ -8,103 +8,70 @@
 <meta name="apple-mobile-web-app-title" content="Coastal Prospector">
 <meta name="theme-color" content="#071d2e">
 <title>Coastal Prospector</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-:root{
-  --navy:#0a3d62;--navy2:#1a5276;--navyd:#071d2e;
-  --gold:#d4a843;--goldl:#f0c96a;--goldp:#fdf3dc;
-  --hot:#c0392b;--warm:#e67e22;--cool:#2471a3;--cold:#7f8c8d;
-  --bg:#f0f3f7;--surf:#fff;--bord:#dde3ea;
-  --txt:#1a2332;--txt2:#5a6a7a;--txth:#9aacb8;
-  --r:13px;--rsm:9px;
-  --sh:0 2px 12px rgba(10,61,98,.09);--shlg:0 8px 32px rgba(10,61,98,.18);
-  --ff:'DM Sans',sans-serif;--fd:'DM Serif Display',serif;
-}
+:root{--navy:#0a3d62;--navyd:#071d2e;--gold:#d4a843;--goldl:#f0c96a;--goldp:#fdf3dc;--hot:#c0392b;--warm:#e67e22;--cool:#2471a3;--cold:#7f8c8d;--bg:#f0f3f7;--surf:#fff;--bord:#dde3ea;--txt:#1a2332;--txt2:#5a6a7a;--txth:#9aacb8;--r:13px;--rsm:9px;--sh:0 2px 12px rgba(10,61,98,.09);--shlg:0 8px 32px rgba(10,61,98,.18);--ff:'DM Sans',sans-serif;--fd:'DM Serif Display',serif}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;overflow:hidden}
 body{font-family:var(--ff);background:var(--bg);color:var(--txt)}
 #app{display:flex;flex-direction:column;height:100dvh}
-
-/* HEADER */
-.hdr{background:var(--navyd);color:#fff;padding:13px 16px 10px;flex-shrink:0;box-shadow:0 2px 18px rgba(0,0,0,.4);z-index:50;position:relative}
+.hdr{background:var(--navyd);color:#fff;padding:13px 16px 10px;flex-shrink:0;box-shadow:0 2px 18px rgba(0,0,0,.4);z-index:50}
 .hdr-row{display:flex;align-items:center;justify-content:space-between}
-.brand{font-family:var(--fd);font-size:20px;letter-spacing:.2px;line-height:1}
+.brand{font-family:var(--fd);font-size:20px;letter-spacing:.2px}
 .brand em{color:var(--gold);font-style:normal}
-.hdr-date{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;letter-spacing:.3px}
+.hdr-date{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#27ae60;display:inline-block;margin-left:6px;vertical-align:middle}
+.sync-dot.off{background:#e74c3c}.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .content{flex:1;overflow:hidden;position:relative}
-.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:none}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px;display:none;scrollbar-width:none}
+.screen::-webkit-scrollbar{display:none}
 .screen.active{display:block}
 #screen-map{padding:0;overflow:hidden}
-
-/* BOTTOM NAV */
 .bnav{display:flex;background:var(--navyd);border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
 .nbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;background:none;border:none;color:rgba(255,255,255,.38);font-size:9px;font-family:var(--ff);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:color .15s}
 .nbtn svg{width:20px;height:20px}
 .nbtn.active{color:var(--gold)}
-
-/* USER BADGE */
 .ubadge{background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.18);border-radius:20px;padding:5px 9px 5px 5px;display:flex;align-items:center;gap:6px;cursor:pointer}
 .ubadge:active{background:rgba(255,255,255,.2)}
 .uav{width:23px;height:23px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;flex-shrink:0}
 .uname{font-size:11px;font-weight:600;color:#fff;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-/* CARDS */
 .card{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:12px;overflow:hidden}
 .card-hd{padding:11px 15px 9px;border-bottom:1px solid var(--bord);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.9px;color:var(--navy);display:flex;align-items:center;gap:7px}
 .card-hd svg{width:13px;height:13px;color:var(--gold);flex-shrink:0}
 .card-bd{padding:13px 15px}
-
-/* FORM */
 label{display:block;font-size:10px;font-weight:700;color:var(--txt2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
 input[type=text],input[type=number],input[type=date],select,textarea{width:100%;padding:10px 12px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:15px;font-family:var(--ff);background:#fafbfc;color:var(--txt);transition:border-color .15s;appearance:none;-webkit-appearance:none}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--navy);background:#fff}
 textarea{resize:vertical;min-height:72px;line-height:1.5}
 .field{margin-bottom:11px}
 .field2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
-
-/* BUTTONS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 17px;border-radius:var(--rsm);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:var(--ff);transition:all .15s;text-decoration:none}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 17px;border-radius:var(--rsm);font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:var(--ff);transition:all .15s}
 .btn svg{width:14px;height:14px;flex-shrink:0}
 .btn-primary{background:var(--navy);color:#fff;width:100%}
-.btn-primary:active{background:var(--navyd);transform:scale(.98)}
+.btn-primary:active{background:var(--navyd)}
 .btn-gold{background:var(--gold);color:var(--navyd);width:100%}
-.btn-gold:active{background:var(--goldl);transform:scale(.98)}
+.btn-gold:active{background:var(--goldl)}
 .btn-out{background:transparent;color:var(--navy);border:1.5px solid var(--navy)}
 .btn-out:active{background:var(--navy);color:#fff}
 .btn-danger{background:transparent;color:var(--hot);border:1.5px solid var(--hot);font-size:12px;padding:7px 12px}
 .btn-danger:active{background:var(--hot);color:#fff}
 .btn-sm{padding:7px 13px;font-size:12px}
-
-/* TEMP */
 .tsel{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:12px}
 .topt{padding:8px 3px;border-radius:var(--rsm);border:2px solid var(--bord);font-size:11px;font-weight:700;text-align:center;cursor:pointer;background:#fafbfc;color:var(--txt2);transition:all .15s}
 .topt[data-v="hot"].sel{border-color:var(--hot);background:#fdecea;color:var(--hot)}
 .topt[data-v="warm"].sel{border-color:var(--warm);background:#fef4e9;color:var(--warm)}
 .topt[data-v="cool"].sel{border-color:var(--cool);background:#eaf4fc;color:var(--cool)}
 .topt[data-v="cold"].sel{border-color:#7f8c8d;background:#f2f3f4;color:#5d6d7e}
-
-/* BADGES */
 .badge{display:inline-flex;align-items:center;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
-.b-hot{background:#fdecea;color:var(--hot)}
-.b-warm{background:#fef4e9;color:var(--warm)}
-.b-cool{background:#eaf4fc;color:var(--cool)}
-.b-cold{background:#f2f3f4;color:#5d6d7e}
-.b-fu{background:var(--goldp);color:#b7770d}
-
-/* LEAD ITEMS */
+.b-hot{background:#fdecea;color:var(--hot)}.b-warm{background:#fef4e9;color:var(--warm)}.b-cool{background:#eaf4fc;color:var(--cool)}.b-cold{background:#f2f3f4;color:#5d6d7e}.b-fu{background:var(--goldp);color:#b7770d}
 .lead-item{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:9px;padding:13px 15px;cursor:pointer;border-left:4px solid var(--bord);display:flex;flex-direction:column;gap:4px;transition:box-shadow .15s}
 .lead-item:active{box-shadow:var(--shlg)}
-.lead-item.hot{border-left-color:var(--hot)}
-.lead-item.warm{border-left-color:var(--warm)}
-.lead-item.cool{border-left-color:var(--cool)}
-.lead-item.cold{border-left-color:#aab}
+.lead-item.hot{border-left-color:var(--hot)}.lead-item.warm{border-left-color:var(--warm)}.lead-item.cool{border-left-color:var(--cool)}.lead-item.cold{border-left-color:#aab}
 .ln{font-size:15px;font-weight:700}
 .lm{font-size:11px;color:var(--txt2);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-
-/* SEARCH */
 .sbar{position:relative;margin-bottom:9px}
 .sbar svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--txth);pointer-events:none}
 .sbar input{padding-left:36px}
@@ -118,21 +85,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .pill.hp.active{background:var(--hot);border-color:var(--hot);color:#fff}
 .pill.wp.active{background:var(--warm);border-color:var(--warm);color:#fff}
 .pill.cp.active{background:var(--cool);border-color:var(--cool);color:#fff}
-
-/* STATS */
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:13px}
 .scard{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:13px 15px}
 .snum{font-size:26px;font-weight:700;color:var(--navy);font-family:var(--fd)}
 .slbl{font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-top:3px}
 .scard.red .snum{color:var(--hot)}
-
-/* FAB */
 .fab{position:absolute;bottom:14px;right:14px;width:54px;height:54px;background:var(--gold);border-radius:50%;box-shadow:0 4px 18px rgba(212,168,67,.55);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:40;transition:transform .15s}
 .fab:active{transform:scale(.91)}
 .fab svg{width:25px;height:25px;color:var(--navyd)}
-.fab-map{position:absolute;bottom:14px;right:14px}
-
-/* OVERLAY / MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(7,29,46,.8);z-index:300;align-items:flex-end}
 .overlay.open{display:flex}
 .modal{background:var(--surf);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:93dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -140,12 +100,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .modal-title{font-size:17px;font-weight:700;color:var(--navy);padding:2px 15px 12px;border-bottom:1px solid var(--bord);font-family:var(--fd)}
 .modal-body{padding:15px}
 .modal-footer{padding:11px 15px;border-top:1px solid var(--bord);display:flex;gap:9px}
-
-/* CONTACT ENTRIES */
 .ce{background:#fafbfc;border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:9px;position:relative}
 .crm{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--hot);font-size:20px;cursor:pointer;line-height:1;padding:1px 6px}
-
-/* DETAIL */
 .dhdr{background:var(--navyd);color:#fff;border-radius:var(--r);padding:17px 15px;margin-bottom:13px}
 .dbiz{font-size:20px;font-weight:700;font-family:var(--fd)}
 .dsub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px}
@@ -162,56 +118,46 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .empty svg{width:42px;height:42px;margin-bottom:10px;color:var(--bord)}
 .empty p{font-size:14px;margin-bottom:4px;color:var(--txt2)}
 .empty small{font-size:12px}
-.fb{display:flex;gap:8px}
 .owner-tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
 .mt8{margin-top:8px}
-
-/* ══ MAP SCREEN ══ */
 #mapContainer{width:100%;height:100%}
-.leaflet-container{font-family:var(--ff)}
 .map-controls{position:absolute;top:10px;left:10px;right:10px;z-index:30;pointer-events:none}
-.map-top-row{display:flex;justify-content:space-between;gap:8px;pointer-events:all}
-.map-pill-btn{background:rgba(7,29,46,.88);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 14px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
-.map-pill-btn:active{background:rgba(7,29,46,1)}
-.map-pill-btn.active-mode{background:rgba(212,168,67,.9);color:var(--navyd);border-color:var(--gold)}
+.map-top-row{display:flex;justify-content:space-between;gap:7px;pointer-events:all;flex-wrap:wrap}
+.mpbtn{background:rgba(7,29,46,.88);backdrop-filter:blur(6px);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:7px 13px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;gap:5px}
+.mpbtn.on{background:rgba(212,168,67,.9);color:var(--navyd);border-color:var(--gold)}
 .map-legend{position:absolute;bottom:80px;left:10px;background:rgba(7,29,46,.88);backdrop-filter:blur(6px);border-radius:var(--rsm);padding:10px 12px;z-index:30;border:1px solid rgba(255,255,255,.12)}
 .legend-row{display:flex;align-items:center;gap:7px;font-size:11px;color:rgba(255,255,255,.8);margin-bottom:5px}
 .legend-row:last-child{margin-bottom:0}
-.ldot{width:12px;height:12px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.3)}
-.map-tip{position:absolute;top:50px;left:50%;transform:translateX(-50%);background:rgba(212,168,67,.95);color:var(--navyd);font-size:12px;font-weight:600;padding:7px 15px;border-radius:20px;z-index:30;pointer-events:none;white-space:nowrap;display:none}
+.ldot{width:11px;height:11px;border-radius:50%;flex-shrink:0;border:2px solid rgba(255,255,255,.3)}
+.map-tip{position:absolute;top:52px;left:50%;transform:translateX(-50%);background:rgba(212,168,67,.95);color:var(--navyd);font-size:12px;font-weight:600;padding:7px 15px;border-radius:20px;z-index:30;pointer-events:none;white-space:nowrap;display:none}
 .map-tip.show{display:block}
-/* custom leaflet marker */
-.cpin{width:28px;height:28px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.4);cursor:pointer}
-.cpin-inner{width:100%;height:100%;border-radius:50% 50% 50% 0;display:flex;align-items:center;justify-content:center}
-
-/* MAP DROP MODAL */
-#dropModal .modal{max-height:70dvh}
 .pin-color-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px}
 .pcol{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .15s;margin:0 auto}
 .pcol.sel{border-color:var(--navy);transform:scale(1.15)}
-
-/* SETUP */
-#setupScreen{position:fixed;inset:0;background:var(--navyd);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;z-index:999}
+#loadingScreen{position:fixed;inset:0;background:var(--navyd);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:16px}
+#loadingScreen .brand{font-family:var(--fd);font-size:28px;color:#fff}
+#loadingScreen .brand em{color:var(--gold);font-style:normal}
+.spinner{width:32px;height:32px;border:3px solid rgba(255,255,255,.15);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadingScreen p{font-size:13px;color:rgba(255,255,255,.45)}
+#setupScreen{position:fixed;inset:0;background:var(--navyd);display:none;flex-direction:column;align-items:center;justify-content:center;padding:28px 20px;z-index:998}
 .setup-logo{font-family:var(--fd);font-size:30px;color:#fff;margin-bottom:4px}
 .setup-logo em{color:var(--gold);font-style:normal}
-.setup-sub{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:36px;letter-spacing:.3px}
+.setup-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:34px}
 .setup-card{background:var(--surf);border-radius:var(--r);padding:22px;width:100%;max-width:360px;box-shadow:var(--shlg)}
 .setup-card h2{font-family:var(--fd);font-size:18px;color:var(--navy);margin-bottom:14px}
-
-/* SETTINGS */
 .exp-card{background:var(--surf);border-radius:var(--r);padding:15px;box-shadow:var(--sh);margin-bottom:11px}
 .exp-card h3{font-size:14px;font-weight:700;color:var(--navy);margin-bottom:5px}
 .exp-card p{font-size:12px;color:var(--txt2);margin-bottom:12px;line-height:1.55}
-
-/* SCROLLBAR hidden on screens */
-.screen::-webkit-scrollbar{display:none}
-.screen{-ms-overflow-style:none;scrollbar-width:none}
 </style>
 </head>
 <body>
-
-<!-- SETUP -->
-<div id="setupScreen" style="display:none">
+<div id="loadingScreen">
+  <div class="brand">Coastal <em>Prospector</em></div>
+  <div class="spinner"></div>
+  <p>Connecting to cloud…</p>
+</div>
+<div id="setupScreen">
   <div class="setup-logo">Coastal <em>Prospector</em></div>
   <div class="setup-sub">MFP Sales · Northern California</div>
   <div class="setup-card">
@@ -219,49 +165,34 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     <div class="field"><label>Your Name</label><input type="text" id="su_name" placeholder="e.g. John Smith" autocomplete="name"></div>
     <div class="field"><label>Profile Color</label>
       <select id="su_color">
-        <option value="#0a3d62">Navy Blue</option>
-        <option value="#1e8449">Forest Green</option>
-        <option value="#6c3483">Purple</option>
-        <option value="#c0392b">Red</option>
-        <option value="#d35400">Orange</option>
-        <option value="#117a8b">Teal</option>
+        <option value="#0a3d62">Navy Blue</option><option value="#1e8449">Forest Green</option>
+        <option value="#6c3483">Purple</option><option value="#c0392b">Red</option>
+        <option value="#d35400">Orange</option><option value="#117a8b">Teal</option>
       </select>
     </div>
-    <button class="btn btn-gold" onclick="createFirstUser()">Get Started →</button>
+    <button class="btn btn-gold" onclick="createProfile()">Get Started →</button>
   </div>
 </div>
-
-<!-- MAIN APP -->
 <div id="app" style="display:none">
-
-  <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-row">
       <div>
-        <div class="brand">Coastal <em>Prospector</em></div>
+        <div class="brand">Coastal <em>Prospector</em> <span class="sync-dot" id="syncDot"></span></div>
         <div class="hdr-date" id="hdrDate"></div>
       </div>
       <div class="ubadge" onclick="openModal('userModal')">
         <div class="uav" id="hdrAv"></div>
         <span class="uname" id="hdrName"></span>
-        <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.5)" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>
   </div>
-
-  <!-- CONTENT -->
   <div class="content">
-
-    <!-- DASHBOARD -->
     <div class="screen active" id="screen-dashboard">
       <div class="sgrid" id="dashStats"></div>
-      <div id="dashFU"></div>
-      <div id="dashHot"></div>
-      <div id="dashToday"></div>
+      <div id="dashFU"></div><div id="dashHot"></div><div id="dashToday"></div>
       <div style="height:70px"></div>
     </div>
-
-    <!-- LEADS -->
     <div class="screen" id="screen-leads">
       <div class="sbar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -282,866 +213,211 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <div id="leadsList"></div>
       <div style="height:70px"></div>
     </div>
-
-    <!-- MAP -->
     <div class="screen" id="screen-map">
       <div id="mapContainer"></div>
       <div class="map-controls">
         <div class="map-top-row">
-          <button class="map-pill-btn" id="toggleSatBtn" onclick="toggleMapStyle()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>
-            Satellite
+          <button class="mpbtn" id="satBtn" onclick="toggleSat()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/></svg>Satellite
           </button>
-          <button class="map-pill-btn" id="dropModeBtn" onclick="toggleDropMode()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
-            Drop Pin
+          <button class="mpbtn" id="dropBtn" onclick="toggleDrop()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>Drop Pin
           </button>
-          <button class="map-pill-btn" onclick="locateMe()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-            My Location
+          <button class="mpbtn" onclick="locateMe()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>My Location
           </button>
         </div>
       </div>
-      <div class="map-tip" id="mapTip">Tap anywhere on the map to drop a pin</div>
+      <div class="map-tip" id="mapTip">Tap anywhere to drop a pin</div>
       <div class="map-legend">
-        <div class="legend-row"><div class="ldot" style="background:var(--hot)"></div>Hot Lead</div>
-        <div class="legend-row"><div class="ldot" style="background:var(--warm)"></div>Warm Lead</div>
-        <div class="legend-row"><div class="ldot" style="background:var(--cool)"></div>Cool Lead</div>
-        <div class="legend-row"><div class="ldot" style="background:var(--cold)"></div>Cold / None</div>
-        <div class="legend-row"><div class="ldot" style="background:var(--gold)"></div>Custom Pin</div>
+        <div class="legend-row"><div class="ldot" style="background:var(--hot)"></div>Hot</div>
+        <div class="legend-row"><div class="ldot" style="background:var(--warm)"></div>Warm</div>
+        <div class="legend-row"><div class="ldot" style="background:var(--cool)"></div>Cool</div>
+        <div class="legend-row"><div class="ldot" style="background:var(--cold)"></div>Cold</div>
+        <div class="legend-row"><div class="ldot" style="background:var(--gold)"></div>Custom</div>
       </div>
-      <button class="fab fab-map" onclick="openNewLead()">
+      <button class="fab" onclick="openNewLead()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
-
-    <!-- TODAY -->
-    <div class="screen" id="screen-today">
-      <div id="todayContent"></div>
-      <div style="height:70px"></div>
-    </div>
-
-    <!-- SETTINGS -->
+    <div class="screen" id="screen-today"><div id="todayContent"></div><div style="height:70px"></div></div>
     <div class="screen" id="screen-settings">
       <div class="sec" style="margin-top:4px">Backup &amp; Export</div>
       <div class="exp-card">
         <h3>📊 Export to CSV (Excel)</h3>
-        <p>Download all your prospect data as a spreadsheet. Open in Excel or Google Sheets.</p>
-        <div class="field"><label>Scope</label>
-          <select id="expScope">
-            <option value="mine">My leads only</option>
-            <option value="all">All users</option>
-          </select>
-        </div>
+        <p>Download all prospect data as a spreadsheet. Open in Excel or Google Sheets.</p>
+        <div class="field"><label>Scope</label><select id="expScope"><option value="mine">My leads only</option><option value="all">All users</option></select></div>
         <button class="btn btn-gold btn-sm" onclick="exportCSV()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download CSV
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download CSV
         </button>
       </div>
       <div class="exp-card">
         <h3>📋 Today's Activity Report</h3>
         <p>Text summary of today's visits to share with your manager.</p>
         <button class="btn btn-primary btn-sm" onclick="exportDay()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          Download Report
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download Report
         </button>
       </div>
       <div class="sec">Install on Phone</div>
       <div class="card"><div class="card-bd">
-        <div style="margin-bottom:12px">
-          <div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div>
-          <div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this page in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div>
-        </div>
-        <div>
-          <div style="font-weight:700;margin-bottom:4px">🤖 Android (Chrome)</div>
-          <div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open in Chrome<br>2. Tap ⋮ menu → "Add to Home screen"</div>
-        </div>
+        <div style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this page in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div></div>
+        <div><div style="font-weight:700;margin-bottom:4px">🤖 Android (Chrome)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open in Chrome<br>2. Tap ⋮ menu → "Add to Home screen"</div></div>
       </div></div>
       <div class="sec">User Profiles</div>
-      <div class="card"><div class="card-bd" id="settingsUsers"></div>
-        <div style="padding:0 15px 14px"><button class="btn btn-out btn-sm" onclick="openModal('addUserModal')">+ Add User</button></div>
-      </div>
+      <div class="card"><div class="card-bd" id="settingsUsers"></div><div style="padding:0 15px 14px"><button class="btn btn-out btn-sm" onclick="openModal('addUserModal')">+ Add User</button></div></div>
       <div style="height:70px"></div>
     </div>
-
-    <!-- DETAIL -->
-    <div class="screen" id="screen-detail">
-      <div id="detailContent"></div>
-      <div style="height:70px"></div>
-    </div>
-
-  </div><!-- /content -->
-
-  <!-- FAB (non-map screens) -->
+    <div class="screen" id="screen-detail"><div id="detailContent"></div><div style="height:70px"></div></div>
+  </div>
   <button class="fab" id="mainFab" onclick="openNewLead()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
   </button>
-
-  <!-- BOTTOM NAV -->
   <nav class="bnav">
     <button class="nbtn active" id="nav-dashboard" onclick="showScreen('dashboard')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-      Dash
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dash
     </button>
     <button class="nbtn" id="nav-leads" onclick="showScreen('leads')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      Leads
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Leads
     </button>
     <button class="nbtn" id="nav-map" onclick="showScreen('map')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
-      Map
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map
     </button>
     <button class="nbtn" id="nav-today" onclick="showScreen('today')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-      Today
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Today
     </button>
     <button class="nbtn" id="nav-settings" onclick="showScreen('settings')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
     </button>
   </nav>
-
-</div><!-- /app -->
-
-<!-- ═══ MODALS ═══ -->
-
-<!-- USER SWITCHER -->
-<div class="overlay" id="userModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Switch User</div>
-    <div class="modal-body">
-      <div id="userList"></div>
-      <div class="divider"></div>
-      <button class="btn btn-out btn-sm" onclick="closeModal('userModal');openModal('addUserModal')">+ Add New User</button>
-    </div>
-  </div>
 </div>
+<!-- MODALS -->
+<div class="overlay" id="userModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Switch User</div><div class="modal-body"><div id="userList"></div><div class="divider"></div><button class="btn btn-out btn-sm" onclick="closeModal('userModal');openModal('addUserModal')">+ Add New User</button></div></div></div>
+<div class="overlay" id="addUserModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Add New User</div><div class="modal-body"><div class="field"><label>Name</label><input type="text" id="nu_name" placeholder="e.g. Mike Johnson"></div><div class="field"><label>Profile Color</label><select id="nu_color"><option value="#0a3d62">Navy Blue</option><option value="#1e8449">Forest Green</option><option value="#6c3483">Purple</option><option value="#c0392b">Red</option><option value="#d35400">Orange</option><option value="#117a8b">Teal</option></select></div></div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('addUserModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="addUser()">Create Profile</button></div></div></div>
+<div class="overlay" id="dropModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Drop Pin Here</div><div class="modal-body"><div class="field"><label>Business Name (optional)</label><input type="text" id="dp_biz" placeholder="Fill in later if unknown"></div><div class="field"><label>Coordinates</label><input type="text" id="dp_addr" readonly style="color:var(--txt2)"></div><div class="field"><label>Pin Color</label><div class="pin-color-grid" id="pinColorGrid"></div></div><div class="field"><label>Quick Note</label><input type="text" id="dp_note" placeholder="e.g. Large office, lots of printers"></div></div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="cancelDrop()">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="confirmDrop()">Save &amp; Add Details</button></div></div></div>
+<div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Business Info</div>
+  <div class="field"><label>Business Name</label><input type="text" id="f_biz" placeholder="Acme Corporation"></div>
+  <div class="field"><label>Address</label><input type="text" id="f_addr" placeholder="123 Main St, Redding, CA"></div>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>Lead Quality &amp; Status</div>
+  <label>Lead Temperature</label>
+  <div class="tsel"><div class="topt" data-v="hot" onclick="selTemp('hot')">🔥 Hot</div><div class="topt" data-v="warm" onclick="selTemp('warm')">🌤 Warm</div><div class="topt" data-v="cool" onclick="selTemp('cool')">❄️ Cool</div><div class="topt" data-v="cold" onclick="selTemp('cold')">🧊 Cold</div></div>
+  <div class="field2"><div><label>Status</label><select id="f_status"><option value="">— Select —</option><option>Prospecting</option><option>Follow-up Needed</option><option>Demo Scheduled</option><option>Proposal Sent</option><option>Negotiating</option><option>Closed Won</option><option>Closed Lost</option></select></div><div><label>Follow-Up Date</label><input type="date" id="f_fudate"></div></div>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Contacts Spoken To</div>
+  <div id="cCont"></div><button class="btn btn-out btn-sm" onclick="addContact()">+ Add Contact</button>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Need to Speak To</div>
+  <div id="nCont"></div><button class="btn btn-out btn-sm" onclick="addNeedContact()">+ Add Person</button>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.61 2.84 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>Phone &amp; Email</div>
+  <div id="peCont"></div><button class="btn btn-out btn-sm" onclick="addPE()">+ Add Phone / Email</button>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Printers &amp; Equipment</div>
+  <div class="field2"><div><label>Est. # Printers</label><input type="number" id="f_pcount" placeholder="0" min="0"></div><div><label>Est. Pages/Month</label><input type="number" id="f_tpages" placeholder="0" min="0"></div></div>
+  <div id="prCont"></div><button class="btn btn-out btn-sm" onclick="addPrinter()">+ Add Specific Printer</button>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Current Lease</div>
+  <div class="field2"><div><label>Has Lease?</label><select id="f_lease"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></div><div><label>Lease End Date</label><input type="date" id="f_leaseend"></div></div>
+  <div class="field"><label>Leased From</label><input type="text" id="f_leaseco" placeholder="Lease company name"></div>
+  <div class="divider"></div>
+  <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Visit Notes</div>
+  <div class="field"><label>Notes for This Visit</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
+</div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="saveLead()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>Save Prospect</button></div></div></div>
 
-<!-- ADD USER -->
-<div class="overlay" id="addUserModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Add New User</div>
-    <div class="modal-body">
-      <div class="field"><label>Name</label><input type="text" id="nu_name" placeholder="e.g. Mike Johnson"></div>
-      <div class="field"><label>Profile Color</label>
-        <select id="nu_color">
-          <option value="#0a3d62">Navy Blue</option>
-          <option value="#1e8449">Forest Green</option>
-          <option value="#6c3483">Purple</option>
-          <option value="#c0392b">Red</option>
-          <option value="#d35400">Orange</option>
-          <option value="#117a8b">Teal</option>
-        </select>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="closeModal('addUserModal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="addUser()">Create Profile</button>
-    </div>
-  </div>
-</div>
-
-<!-- MAP DROP PIN MODAL -->
-<div class="overlay" id="dropModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Drop Pin Here</div>
-    <div class="modal-body">
-      <div class="field"><label>Business Name (optional)</label><input type="text" id="dp_biz" placeholder="Leave blank to fill in later"></div>
-      <div class="field"><label>Address</label><input type="text" id="dp_addr" placeholder="Auto-filled from map location" readonly style="color:var(--txt2)"></div>
-      <div class="field"><label>Pin Color</label>
-        <div class="pin-color-grid" id="pinColorGrid"></div>
-      </div>
-      <div class="field"><label>Quick Note</label><input type="text" id="dp_note" placeholder="e.g. Large office, 20+ printers"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="cancelDrop()">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="confirmDrop()">Drop Pin &amp; Save</button>
-    </div>
-  </div>
-</div>
-
-<!-- LEAD FORM -->
-<div class="overlay" id="leadModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="modalTitle">New Prospect</div>
-    <div class="modal-body">
-
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        Business Info
-      </div>
-      <div class="field"><label>Business Name</label><input type="text" id="f_biz" placeholder="Acme Corporation"></div>
-      <div class="field"><label>Address</label><input type="text" id="f_addr" placeholder="123 Main St, Redding, CA"></div>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>
-        Lead Quality &amp; Status
-      </div>
-      <label>Lead Temperature</label>
-      <div class="tsel">
-        <div class="topt" data-v="hot" onclick="selTemp('hot')">🔥 Hot</div>
-        <div class="topt" data-v="warm" onclick="selTemp('warm')">🌤 Warm</div>
-        <div class="topt" data-v="cool" onclick="selTemp('cool')">❄️ Cool</div>
-        <div class="topt" data-v="cold" onclick="selTemp('cold')">🧊 Cold</div>
-      </div>
-      <div class="field2">
-        <div><label>Status</label>
-          <select id="f_status">
-            <option value="">— Select —</option>
-            <option>Prospecting</option>
-            <option>Follow-up Needed</option>
-            <option>Demo Scheduled</option>
-            <option>Proposal Sent</option>
-            <option>Negotiating</option>
-            <option>Closed Won</option>
-            <option>Closed Lost</option>
-          </select>
-        </div>
-        <div><label>Follow-Up Date</label><input type="date" id="f_fudate"></div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-        Contacts Spoken To
-      </div>
-      <div id="cCont"></div>
-      <button class="btn btn-out btn-sm" onclick="addContact()">+ Add Contact</button>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        Need to Speak To
-      </div>
-      <div id="nCont"></div>
-      <button class="btn btn-out btn-sm" onclick="addNeedContact()">+ Add Person</button>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.61 2.84 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-        Phone &amp; Email
-      </div>
-      <div id="peCont"></div>
-      <button class="btn btn-out btn-sm" onclick="addPE()">+ Add Phone / Email</button>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Printers &amp; Equipment
-      </div>
-      <div class="field2">
-        <div><label>Est. # Printers</label><input type="number" id="f_pcount" placeholder="0" min="0"></div>
-        <div><label>Est. Pages/Month</label><input type="number" id="f_tpages" placeholder="0" min="0"></div>
-      </div>
-      <div id="prCont"></div>
-      <button class="btn btn-out btn-sm" onclick="addPrinter()">+ Add Specific Printer</button>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-        Current Lease
-      </div>
-      <div class="field2">
-        <div><label>Has Lease?</label>
-          <select id="f_lease">
-            <option value="">Unknown</option>
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
-        </div>
-        <div><label>Lease End Date</label><input type="date" id="f_leaseend"></div>
-      </div>
-      <div class="field"><label>Leased From</label><input type="text" id="f_leaseco" placeholder="Lease company name"></div>
-
-      <div class="divider"></div>
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-        Visit Notes
-      </div>
-      <div class="field"><label>Notes for This Visit</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
-
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="saveLead()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-        Save Prospect
-      </button>
-    </div>
-  </div>
-</div>
-
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getFirestore,collection,doc,addDoc,updateDoc,deleteDoc,onSnapshot,query,orderBy}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const cfg={apiKey:"AIzaSyAXyk1ZPY2P5O6_Rs0-H0oE_lc_anlbLHo",authDomain:"coastal-prospector.firebaseapp.com",projectId:"coastal-prospector",storageBucket:"coastal-prospector.firebasestorage.app",messagingSenderId:"1038551418113",appId:"1:1038551418113:web:f18f40a094ce34f2728700"};
+const fb=initializeApp(cfg);
+const db=getFirestore(fb);
+function sd(s){const d=document.getElementById('syncDot');if(!d)return;d.className='sync-dot'+(s==='off'?' off':s==='syncing'?' syncing':'');}
+window.sd=sd;
+window.fbSaveLead=async(data,id)=>{sd('syncing');try{if(id){await updateDoc(doc(db,'leads',id),{...data,updatedAt:new Date().toISOString()});}else{const n=new Date().toISOString();await addDoc(collection(db,'leads'),{...data,createdAt:n,updatedAt:n});}sd('ok');}catch(e){console.error(e);sd('off');}};
+window.fbDeleteLead=async(id)=>{sd('syncing');try{await deleteDoc(doc(db,'leads',id));sd('ok');}catch(e){console.error(e);sd('off');}};
+window.fbSaveUser=async(data)=>{try{await addDoc(collection(db,'users'),data);}catch(e){console.error(e);}};
+window.fbUpdateLead=async(id,data)=>{sd('syncing');try{await updateDoc(doc(db,'leads',id),{...data,updatedAt:new Date().toISOString()});sd('ok');}catch(e){console.error(e);sd('off');}};
+let ul=false,ll=false;
+onSnapshot(collection(db,'users'),snap=>{window._users=[];snap.forEach(d=>window._users.push({id:d.id,...d.data()}));ul=true;chk();window.refreshUserUI&&window.refreshUserUI();});
+onSnapshot(query(collection(db,'leads'),orderBy('updatedAt','desc')),snap=>{window._leads=[];snap.forEach(d=>window._leads.push({id:d.id,...d.data()}));ll=true;sd('ok');chk();window.refreshAllUI&&window.refreshAllUI();},e=>{console.error(e);sd('off');});
+function chk(){if(ul&&ll&&!window._appReady){window._appReady=true;document.getElementById('loadingScreen').style.display='none';const uid=localStorage.getItem('cbs_uid');if(!window._users.length){document.getElementById('setupScreen').style.display='flex';}else{window._uid=uid&&window._users.find(u=>u.id===uid)?uid:window._users[0].id;localStorage.setItem('cbs_uid',window._uid);document.getElementById('app').style.display='flex';window.updateHdrUser&&window.updateHdrUser();document.getElementById('hdrDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});window.renderDashboard&&window.renderDashboard();}}}
+</script>
 <script>
-// ═══════════════════════════════════════════════
-//  DATA
-// ═══════════════════════════════════════════════
-let db = JSON.parse(localStorage.getItem('cbs_db')||'null') || {users:[],leads:[]};
-let uid = localStorage.getItem('cbs_uid') || null;
-let cFilter='all', cScope='mine', editId=null, cTemp='';
-
-// Map state
-let map=null, satOn=false, dropMode=false, pendingLatLng=null, pendingMarker=null;
-let pinColor='#d4a843';
+window._users=[];window._leads=[];window._appReady=false;window._uid=null;
+let cFilter='all',cScope='mine',editId=null,cTemp='';
+let map=null,satOn=false,dropMode=false,pendingLatLng=null,pendingMarker=null,pinColor='#d4a843';
 const PIN_COLORS=['#c0392b','#e67e22','#d4a843','#27ae60','#2471a3','#6c3483','#117a8b','#d35400','#1a252f','#7f8c8d'];
-
-const BOUNDS = L.latLngBounds(L.latLng(39.5,-124.5), L.latLng(42.1,-120.0)); // Corning → OR border
-const CENTER = [40.8, -122.3]; // ~Redding area
-
-function sv(){localStorage.setItem('cbs_db',JSON.stringify(db))}
-function svu(){localStorage.setItem('cbs_uid',uid)}
+const BOUNDS=L.latLngBounds(L.latLng(39.5,-124.5),L.latLng(42.1,-120.0));
+const CENTER=[40.8,-122.3];
+const STREET='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const SAT='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 function now(){return new Date().toISOString()}
 function today(){return new Date().toISOString().split('T')[0]}
-function cu(){return db.users.find(u=>u.id===uid)}
-function ini(n){return (n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
+function cu(){return(window._users||[]).find(u=>u.id===window._uid)}
+function ini(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)}
 function fdt(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})}
 function fds(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}
-function tempColor(t){return t==='hot'?'var(--hot)':t==='warm'?'var(--warm)':t==='cool'?'var(--cool)':'var(--cold)'}
-
-// ═══════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════
-function init(){
-  if(!db.users.length){
-    document.getElementById('setupScreen').style.display='flex';
-    document.getElementById('app').style.display='none';
-    return;
-  }
-  if(!uid||!db.users.find(u=>u.id===uid)) uid=db.users[0].id;
-  svu();
-  document.getElementById('setupScreen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  document.getElementById('hdrDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
-  updateHdrUser();
-  renderDashboard();
-}
-
-function createFirstUser(){
-  const name=document.getElementById('su_name').value.trim();
-  if(!name){alert('Please enter your name');return}
-  const color=document.getElementById('su_color').value;
-  db.users.push({id:gid(),name,color,createdAt:now()});
-  uid=db.users[0].id; sv(); svu(); init();
-}
-
-function addUser(){
-  const name=document.getElementById('nu_name').value.trim();
-  if(!name){alert('Please enter a name');return}
-  db.users.push({id:gid(),name,color:document.getElementById('nu_color').value,createdAt:now()});
-  sv(); closeModal('addUserModal'); renderSettingsUsers();
-  alert('Profile created! Use the user button to switch.');
-}
-
-function switchUser(id){uid=id;svu();closeModal('userModal');updateHdrUser();renderDashboard();renderLeads()}
-
-function updateHdrUser(){
-  const u=cu(); if(!u)return;
-  const av=document.getElementById('hdrAv');
-  av.textContent=ini(u.name); av.style.background=u.color;
-  document.getElementById('hdrName').textContent=u.name.split(' ')[0];
-}
-
-// ═══════════════════════════════════════════════
-//  MODALS
-// ═══════════════════════════════════════════════
+window.refreshAllUI=function(){const a=document.querySelector('.screen.active');if(!a)return;const id=a.id.replace('screen-','');if(id==='dashboard')renderDashboard();else if(id==='leads')renderLeads();else if(id==='today')renderToday();else if(id==='settings')renderSettingsUsers();refreshMapMarkers();};
+window.refreshUserUI=function(){updateHdrUser();renderSettingsUsers();renderUserList();};
+window.updateHdrUser=function(){const u=cu();if(!u)return;const av=document.getElementById('hdrAv');av.textContent=ini(u.name);av.style.background=u.color;document.getElementById('hdrName').textContent=u.name.split(' ')[0];};
+function renderUserList(){const el=document.getElementById('userList');if(!el)return;el.innerHTML=(window._users||[]).map(u=>`<div style="display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--bord);cursor:pointer" onclick="switchUser('${u.id}')"><div style="width:38px;height:38px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${ini(u.name)}</div><div style="flex:1"><div style="font-weight:700">${u.name}</div><div style="font-size:12px;color:var(--txt2)">${(window._leads||[]).filter(l=>l.userId===u.id).length} prospects</div></div>${u.id===window._uid?'<div style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></div>':''}</div>`).join('');}
+function switchUser(id){window._uid=id;localStorage.setItem('cbs_uid',id);closeModal('userModal');updateHdrUser();renderDashboard();renderLeads();}
+function createProfile(){const name=document.getElementById('su_name').value.trim();if(!name){alert('Please enter your name');return;}window.fbSaveUser({name,color:document.getElementById('su_color').value,createdAt:now()});document.getElementById('setupScreen').style.display='none';}
+function addUser(){const name=document.getElementById('nu_name').value.trim();if(!name){alert('Please enter a name');return;}window.fbSaveUser({name,color:document.getElementById('nu_color').value,createdAt:now()});closeModal('addUserModal');}
 function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
-['userModal','addUserModal','leadModal','dropModal'].forEach(id=>{
-  document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)});
-});
-
-function openUserModal(){
-  document.getElementById('userList').innerHTML=db.users.map(u=>`
-    <div style="display:flex;align-items:center;gap:11px;padding:12px 0;border-bottom:1px solid var(--bord);cursor:pointer" onclick="switchUser('${u.id}')">
-      <div style="width:38px;height:38px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">${ini(u.name)}</div>
-      <div style="flex:1"><div style="font-weight:700">${u.name}</div><div style="font-size:12px;color:var(--txt2)">${db.leads.filter(l=>l.userId===u.id).length} prospects</div></div>
-      ${u.id===uid?'<div style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></div>':''}
-    </div>`).join('');
-  openModal('userModal');
-}
-
-// ═══════════════════════════════════════════════
-//  SCREENS
-// ═══════════════════════════════════════════════
-function showScreen(name){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('screen-'+name).classList.add('active');
-  const nb=document.getElementById('nav-'+name); if(nb)nb.classList.add('active');
-  const fab=document.getElementById('mainFab');
-  fab.style.display=(name==='detail'||name==='settings'||name==='map')?'none':'flex';
-  if(name==='dashboard')renderDashboard();
-  if(name==='leads')renderLeads();
-  if(name==='map')initMap();
-  if(name==='today')renderToday();
-  if(name==='settings')renderSettings();
-}
-
-function showDetail(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById('screen-detail').classList.add('active');
-  document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('mainFab').style.display='none';
-  renderDetail(id);
-}
-
-// ═══════════════════════════════════════════════
-//  DASHBOARD
-// ═══════════════════════════════════════════════
-function renderDashboard(){
-  const t=today();
-  const mine=db.leads.filter(l=>l.userId===uid);
-  const hot=mine.filter(l=>l.temp==='hot').length;
-  const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));
-  const fu=mine.filter(l=>l.followupDate&&l.followupDate>=t).sort((a,b)=>a.followupDate.localeCompare(b.followupDate));
-  document.getElementById('dashStats').innerHTML=`
-    <div class="scard"><div class="snum">${mine.length}</div><div class="slbl">My Prospects</div></div>
-    <div class="scard red"><div class="snum">${hot}</div><div class="slbl">Hot Leads</div></div>
-    <div class="scard"><div class="snum">${todayL.length}</div><div class="slbl">Visited Today</div></div>
-    <div class="scard"><div class="snum">${fu.length}</div><div class="slbl">Follow-Ups</div></div>`;
-  document.getElementById('dashFU').innerHTML=fu.slice(0,3).map(l=>
-    `<div class="fubar" onclick="showDetail('${l.id}')">📅 <strong>${fds(l.followupDate)}</strong> — ${l.bizName||'Unnamed'}</div>`).join('');
-  const hotL=mine.filter(l=>l.temp==='hot'||l.temp==='warm').sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).slice(0,4);
-  document.getElementById('dashHot').innerHTML=(hotL.length?'<div class="sec">🔥 Hot &amp; Warm</div>'+hotL.map(liHtml).join(''):'');
-  document.getElementById('dashToday').innerHTML='<div class="sec">Today\'s Activity</div>'+(todayL.length?todayL.map(liHtml).join(''):`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>No visits today</p><small>Tap + to log a prospect</small></div>`);
-}
-
-// ═══════════════════════════════════════════════
-//  LEADS
-// ═══════════════════════════════════════════════
-function setScope(s){cScope=s;document.getElementById('scopeMine').classList.toggle('active',s==='mine');document.getElementById('scopeAll').classList.toggle('active',s==='all');renderLeads()}
-function setFilter(f,el){cFilter=f;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderLeads()}
-
-function renderLeads(){
-  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
-  let pool=cScope==='mine'?db.leads.filter(l=>l.userId===uid):db.leads;
-  let list=pool.filter(l=>{
-    if(q){const h=[l.bizName,l.address,...(l.contacts||[]).map(c=>c.name+' '+c.title),...(l.phoneEmails||[]).map(p=>p.value)].join(' ').toLowerCase();if(!h.includes(q))return false}
-    if(cFilter==='hot')return l.temp==='hot';
-    if(cFilter==='warm')return l.temp==='warm';
-    if(cFilter==='cool')return l.temp==='cool';
-    if(cFilter==='followup')return!!l.followupDate;
-    if(cFilter==='lease')return l.hasLease==='yes';
-    return true;
-  }).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt));
-  document.getElementById('leadsList').innerHTML=list.length?list.map(l=>liHtml(l,cScope==='all')).join(''):`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>${q?'No results':'No prospects yet'}</p><small>Tap + to add one</small></div>`;
-}
-
-function liHtml(l,showOwner=false){
-  const tc=l.temp||'';
-  const owner=showOwner?db.users.find(u=>u.id===l.userId):null;
-  const lv=l.visits&&l.visits.length?fdt(l.visits[l.visits.length-1].date):'No visits';
-  const cs=(l.contacts||[]).slice(0,2).map(c=>c.name).filter(Boolean).join(', ');
-  return`<div class="lead-item ${tc}" onclick="showDetail('${l.id}')">
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-      <div class="ln">${l.bizName||'Unnamed Business'}</div>
-      ${tc?`<span class="badge b-${tc}">${tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊'} ${tc.charAt(0).toUpperCase()+tc.slice(1)}</span>`:''}
-    </div>
-    ${cs?`<div style="font-size:13px;color:var(--txt2)">${cs}</div>`:''}
-    <div class="lm">
-      ${l.address?`<span>📍 ${l.address}</span>`:''}
-      <span>🕐 ${lv}</span>
-      ${l.followupDate?`<span class="badge b-fu">📅 ${fds(l.followupDate)}</span>`:''}
-      ${owner?`<span class="owner-tag" style="background:${owner.color}22;color:${owner.color}">${ini(owner.name)} ${owner.name.split(' ')[0]}</span>`:''}
-    </div>
-  </div>`;
-}
-
-// ═══════════════════════════════════════════════
-//  TODAY
-// ═══════════════════════════════════════════════
-function renderToday(){
-  const t=today();
-  const mine=db.leads.filter(l=>l.userId===uid);
-  const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));
-  const stops=todayL.filter(l=>l.address).length;
-  const miles=stops*8;
-  const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  let html=`<div style="background:var(--navyd);color:#fff;border-radius:var(--r);padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between">
-    <div><div style="font-family:var(--fd);font-size:18px">Today's Route</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">${dn}</div></div>
-    <div style="text-align:right"><div style="font-size:26px;font-weight:700;color:var(--gold);font-family:var(--fd)">${todayL.length}</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Stops</div></div>
-  </div>`;
-  if(todayL.length){
-    html+=`<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px">
-      <div style="font-size:24px;font-weight:700;color:var(--navy);font-family:var(--fd)">~${miles} mi</div>
-      <div style="font-size:12px;color:var(--txt2);margin-top:2px">Est. round trip from Coastal Business Systems, Redding</div>
-    </div><div class="sec">Businesses Visited</div>${todayL.map(l=>liHtml(l)).join('')}`;
-  } else {
-    html+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><p>No visits today</p><small>Get out there and prospect!</small></div>`;
-  }
-  document.getElementById('todayContent').innerHTML=html;
-}
-
-// ═══════════════════════════════════════════════
-//  DETAIL
-// ═══════════════════════════════════════════════
-function renderDetail(id){
-  const l=db.leads.find(x=>x.id===id); if(!l)return;
-  const tc=l.temp||'';
-  const isOwner=l.userId===uid;
-  const owner=db.users.find(u=>u.id===l.userId);
-  let h=`<div class="dhdr">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px">
-      <div class="dbiz">${l.bizName||'Unnamed Business'}</div>
-      ${tc?`<span class="badge b-${tc}" style="flex-shrink:0">${tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊'} ${tc.charAt(0).toUpperCase()+tc.slice(1)}</span>`:''}
-    </div>
-    ${l.address?`<div class="dsub">📍 ${l.address}</div>`:''}
-    ${l.status?`<div class="dsub">Status: ${l.status}</div>`:''}
-    ${owner&&owner.id!==uid?`<div class="dsub" style="margin-top:5px">👤 <strong style="color:${owner.color}">${owner.name}</strong>'s lead</div>`:''}
-  </div>`;
-  if(isOwner){
-    h+=`<div class="fb" style="margin-bottom:13px">
-      <button class="btn btn-primary" style="flex:2" onclick="openEditLead('${id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit
-      </button>
-      <button class="btn btn-danger" style="flex:1" onclick="delLead('${id}')">Delete</button>
-    </div>`;
-  }
-  if(l.followupDate)h+=`<div class="fubar">📅 Follow-up: <strong>${fds(l.followupDate)}</strong></div>`;
-
-  if(l.contacts&&l.contacts.length){h+=`<div class="card"><div class="card-hd">Contacts Spoken To</div><div class="card-bd">`;l.contacts.forEach(c=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">${c.name||'—'}</div>${c.title?`<div style="font-size:12px;color:var(--txt2)">${c.title}</div>`:''}</div>`});h+=`</div></div>`;}
-  if(l.needContacts&&l.needContacts.length){h+=`<div class="card"><div class="card-hd">Need to Speak To</div><div class="card-bd">`;l.needContacts.forEach(c=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">${c.name||'—'}</div>${c.title?`<div style="font-size:12px;color:var(--txt2)">${c.title}</div>`:''}${c.notes?`<div style="font-size:12px;color:var(--txt2)">${c.notes}</div>`:''}</div>`});h+=`</div></div>`;}
-  if(l.phoneEmails&&l.phoneEmails.length){h+=`<div class="card"><div class="card-hd">Phone &amp; Email</div><div class="card-bd">`;l.phoneEmails.forEach(pe=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-size:11px;color:var(--txt2)">${pe.label||pe.type}</div><div style="font-weight:700">${pe.value}</div></div>`});h+=`</div></div>`;}
-  if(l.printerCount||l.totalPages||(l.printers&&l.printers.length)){
-    h+=`<div class="card"><div class="card-hd">Equipment</div><div class="card-bd">`;
-    if(l.printerCount)h+=`<div class="irow"><div class="ilbl">Est. Printers</div><div class="ival">${l.printerCount}</div></div>`;
-    if(l.totalPages)h+=`<div class="irow"><div class="ilbl">Pages/Month</div><div class="ival">${parseInt(l.totalPages).toLocaleString()}</div></div>`;
-    (l.printers||[]).forEach((p,i)=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">Printer ${i+1}${p.brand?' — '+p.brand:''}${p.model?' '+p.model:''}</div>${p.pages?`<div style="font-size:12px;color:var(--txt2)">${parseInt(p.pages).toLocaleString()} pages/mo</div>`:''}</div>`});
-    h+=`</div></div>`;
-  }
-  if(l.hasLease){
-    h+=`<div class="card"><div class="card-hd">Lease Info</div><div class="card-bd">
-      <div class="irow"><div class="ilbl">Has Lease</div><div class="ival">${l.hasLease==='yes'?'Yes':'No'}</div></div>
-      ${l.leaseco?`<div class="irow"><div class="ilbl">Leased From</div><div class="ival">${l.leaseco}</div></div>`:''}
-      ${l.leaseend?`<div class="irow"><div class="ilbl">Ends</div><div class="ival">${fds(l.leaseend)}</div></div>`:''}
-    </div></div>`;
-  }
-  h+=`<div class="card"><div class="card-hd">Visit History (${(l.visits||[]).length})</div><div class="card-bd">`;
-  if(l.visits&&l.visits.length)[...l.visits].reverse().forEach(v=>{h+=`<div class="ve"><div class="vd">${fdt(v.date)}</div><div class="vn">${v.notes||'<span style="color:var(--txth)">No notes</span>'}</div></div>`});
-  else h+=`<div style="font-size:13px;color:var(--txt2)">No visits recorded</div>`;
-  h+=`<div class="divider"></div><div style="font-weight:700;font-size:13px;margin-bottom:7px">Log New Visit Note</div>
-    <textarea id="addNoteT" placeholder="Notes for this visit…" style="width:100%;padding:9px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);min-height:66px;background:#fafbfc"></textarea>
-    <button class="btn btn-primary btn-sm mt8" onclick="addVisit('${id}')">+ Log Visit</button>
-  </div></div>`;
-  h+=`<div style="margin-bottom:12px"><button class="btn btn-out" style="width:100%" onclick="goBack()">← Back to Leads</button></div>`;
-  document.getElementById('detailContent').innerHTML=h;
-}
-
-function addVisit(id){
-  const t=document.getElementById('addNoteT').value.trim();
-  const l=db.leads.find(x=>x.id===id); if(!l)return;
-  if(!l.visits)l.visits=[];
-  l.visits.push({date:now(),notes:t}); l.updatedAt=now(); sv(); renderDetail(id);
-}
-function delLead(id){if(!confirm('Delete this prospect?'))return;db.leads=db.leads.filter(x=>x.id!==id);sv();goBack()}
-function goBack(){showScreen('leads')}
-
-// ═══════════════════════════════════════════════
-//  LEAD FORM
-// ═══════════════════════════════════════════════
-function openNewLead(prefill={}){
-  editId=null;cTemp='';
-  document.getElementById('modalTitle').textContent='New Prospect';
-  clearForm();
-  if(prefill.biz)document.getElementById('f_biz').value=prefill.biz;
-  if(prefill.addr)document.getElementById('f_addr').value=prefill.addr;
-  if(prefill.notes)document.getElementById('f_notes').value=prefill.notes;
-  addContact();addPE();
-  openModal('leadModal');
-}
-function openEditLead(id){
-  const l=db.leads.find(x=>x.id===id);if(!l)return;
-  editId=id;cTemp=l.temp||'';
-  document.getElementById('modalTitle').textContent='Edit Prospect';
-  clearForm();populateForm(l);openModal('leadModal');
-}
-function clearForm(){
-  ['f_biz','f_addr','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_notes'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});
-  document.getElementById('f_status').value='';document.getElementById('f_lease').value='';
-  document.querySelectorAll('.topt').forEach(e=>e.classList.remove('sel'));
-  ['cCont','nCont','peCont','prCont'].forEach(i=>document.getElementById(i).innerHTML='');
-}
-function populateForm(l){
-  document.getElementById('f_biz').value=l.bizName||'';
-  document.getElementById('f_addr').value=l.address||'';
-  document.getElementById('f_status').value=l.status||'';
-  document.getElementById('f_fudate').value=l.followupDate||'';
-  document.getElementById('f_pcount').value=l.printerCount||'';
-  document.getElementById('f_tpages').value=l.totalPages||'';
-  document.getElementById('f_lease').value=l.hasLease||'';
-  document.getElementById('f_leaseend').value=l.leaseend||'';
-  document.getElementById('f_leaseco').value=l.leaseco||'';
-  document.getElementById('f_notes').value='';
-  if(l.temp)document.querySelector(`.topt[data-v="${l.temp}"]`)?.classList.add('sel');
-  (l.contacts||[]).forEach(c=>addContact(c));if(!l.contacts?.length)addContact();
-  (l.needContacts||[]).forEach(c=>addNeedContact(c));
-  (l.phoneEmails||[]).forEach(p=>addPE(p));if(!l.phoneEmails?.length)addPE();
-  (l.printers||[]).forEach(p=>addPrinter(p));
-}
-function selTemp(v){cTemp=v;document.querySelectorAll('.topt').forEach(e=>e.classList.remove('sel'));document.querySelector(`.topt[data-v="${v}"]`)?.classList.add('sel')}
-
-function addContact(d={}){
-  const id=gid(),div=document.createElement('div');div.className='ce';
-  div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button>
-    <div class="field"><label>Name</label><input type="text" value="${d.name||''}" placeholder="Jane Smith" data-f="name" data-t="c" data-id="${id}"></div>
-    <div class="field"><label>Title</label><input type="text" value="${d.title||''}" placeholder="Office Manager" data-f="title" data-t="c" data-id="${id}"></div>`;
-  document.getElementById('cCont').appendChild(div);
-}
-function addNeedContact(d={}){
-  const id=gid(),div=document.createElement('div');div.className='ce';
-  div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button>
-    <div class="field"><label>Name / Role</label><input type="text" value="${d.name||''}" placeholder="Owner, IT Manager…" data-f="name" data-t="n" data-id="${id}"></div>
-    <div class="field"><label>Title</label><input type="text" value="${d.title||''}" placeholder="Decision maker" data-f="title" data-t="n" data-id="${id}"></div>
-    <div class="field"><label>Notes</label><input type="text" value="${d.notes||''}" placeholder="Best time to reach" data-f="notes" data-t="n" data-id="${id}"></div>`;
-  document.getElementById('nCont').appendChild(div);
-}
-function addPE(d={}){
-  const id=gid(),div=document.createElement('div');div.className='ce';
-  div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button>
-    <div class="field2">
-      <div><label>Type</label><select data-f="type" data-t="pe" data-id="${id}"><option>Phone</option><option>Cell</option><option>Office Phone</option><option>Email</option><option>Direct Email</option><option>Boss Email</option><option>General Email</option></select></div>
-      <div><label>Label</label><input type="text" value="${d.label||''}" placeholder="Jane's cell" data-f="label" data-t="pe" data-id="${id}"></div>
-    </div>
-    <div class="field"><label>Number / Address</label><input type="text" value="${d.value||''}" placeholder="(530) 555-0100" data-f="value" data-t="pe" data-id="${id}"></div>`;
-  if(d.type)div.querySelector('[data-f="type"]').value=d.type;
-  document.getElementById('peCont').appendChild(div);
-}
-function addPrinter(d={}){
-  const id=gid(),div=document.createElement('div');div.className='ce';
-  div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button>
-    <div class="field2">
-      <div><label>Brand</label><input type="text" value="${d.brand||''}" placeholder="Ricoh…" data-f="brand" data-t="pr" data-id="${id}"></div>
-      <div><label>Model</label><input type="text" value="${d.model||''}" placeholder="MP 2555" data-f="model" data-t="pr" data-id="${id}"></div>
-    </div>
-    <div class="field"><label>Pages/Month</label><input type="number" value="${d.pages||''}" placeholder="0" min="0" data-f="pages" data-t="pr" data-id="${id}"></div>`;
-  document.getElementById('prCont').appendChild(div);
-}
-function collectEntries(cid,t){
-  const g={};
-  document.getElementById(cid).querySelectorAll(`[data-t="${t}"]`).forEach(e=>{
-    if(!g[e.dataset.id])g[e.dataset.id]={};g[e.dataset.id][e.dataset.f]=e.value;
-  });
-  return Object.values(g).filter(o=>Object.values(o).some(v=>v));
-}
-function saveLead(){
-  const contacts=collectEntries('cCont','c');
-  const needContacts=collectEntries('nCont','n');
-  const phoneEmails=collectEntries('peCont','pe');
-  const printers=collectEntries('prCont','pr');
-  const noteText=document.getElementById('f_notes').value.trim();
-  const base={
-    bizName:document.getElementById('f_biz').value.trim(),
-    address:document.getElementById('f_addr').value.trim(),
-    temp:cTemp,status:document.getElementById('f_status').value,
-    followupDate:document.getElementById('f_fudate').value,
-    contacts,needContacts,phoneEmails,
-    printerCount:document.getElementById('f_pcount').value,
-    totalPages:document.getElementById('f_tpages').value,
-    printers,hasLease:document.getElementById('f_lease').value,
-    leaseend:document.getElementById('f_leaseend').value,
-    leaseco:document.getElementById('f_leaseco').value.trim(),
-    updatedAt:now()
-  };
-  if(editId){
-    const l=db.leads.find(x=>x.id===editId);if(!l)return;
-    Object.assign(l,base);
-    if(noteText){if(!l.visits)l.visits=[];l.visits.push({date:now(),notes:noteText});}
-    sv();closeModal('leadModal');refreshMapMarkers();renderDetail(editId);
-  } else {
-    const id=gid(),n=now();
-    const lead={id,userId:uid,...base,visits:[{date:n,notes:noteText}],createdAt:n,lat:pendingLatLng?.lat,lng:pendingLatLng?.lng,pinColor:pinColor};
-    db.leads.unshift(lead);pendingLatLng=null;
-    sv();closeModal('leadModal');refreshMapMarkers();showDetail(id);
-  }
-}
-
-// ═══════════════════════════════════════════════
-//  MAP
-// ═══════════════════════════════════════════════
-const STREET_URL='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-const SAT_URL='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+['userModal','addUserModal','leadModal','dropModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id)});});
+function showScreen(name){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));document.getElementById('screen-'+name).classList.add('active');const nb=document.getElementById('nav-'+name);if(nb)nb.classList.add('active');document.getElementById('mainFab').style.display=(name==='detail'||name==='settings'||name==='map')?'none':'flex';if(name==='dashboard')renderDashboard();if(name==='leads')renderLeads();if(name==='map')initMap();if(name==='today')renderToday();if(name==='settings')renderSettings();}
+function showDetail(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('screen-detail').classList.add('active');document.querySelectorAll('.nbtn').forEach(b=>b.classList.remove('active'));document.getElementById('mainFab').style.display='none';renderDetail(id);}
+window.renderDashboard=function renderDashboard(){const t=today();const mine=(window._leads||[]).filter(l=>l.userId===window._uid);const hot=mine.filter(l=>l.temp==='hot').length;const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));const fu=mine.filter(l=>l.followupDate&&l.followupDate>=t).sort((a,b)=>a.followupDate.localeCompare(b.followupDate));document.getElementById('dashStats').innerHTML=`<div class="scard"><div class="snum">${mine.length}</div><div class="slbl">My Prospects</div></div><div class="scard red"><div class="snum">${hot}</div><div class="slbl">Hot Leads</div></div><div class="scard"><div class="snum">${todayL.length}</div><div class="slbl">Visited Today</div></div><div class="scard"><div class="snum">${fu.length}</div><div class="slbl">Follow-Ups</div></div>`;document.getElementById('dashFU').innerHTML=fu.slice(0,3).map(l=>`<div class="fubar" onclick="showDetail('${l.id}')">📅 <strong>${fds(l.followupDate)}</strong> — ${l.bizName||'Unnamed'}</div>`).join('');const hotL=mine.filter(l=>l.temp==='hot'||l.temp==='warm').slice(0,4);document.getElementById('dashHot').innerHTML=hotL.length?`<div class="sec">🔥 Hot &amp; Warm</div>`+hotL.map(liHtml).join(''):'';document.getElementById('dashToday').innerHTML=`<div class="sec">Today's Activity</div>`+(todayL.length?todayL.map(liHtml).join(''):`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>No visits today</p><small>Tap + to log a prospect</small></div>`);};
+function setScope(s){cScope=s;document.getElementById('scopeMine').classList.toggle('active',s==='mine');document.getElementById('scopeAll').classList.toggle('active',s==='all');renderLeads();}
+function setFilter(f,el){cFilter=f;document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderLeads();}
+window.renderLeads=function renderLeads(){const q=(document.getElementById('searchInput')?.value||'').toLowerCase();let pool=cScope==='mine'?(window._leads||[]).filter(l=>l.userId===window._uid):(window._leads||[]);let list=pool.filter(l=>{if(q){const h=[l.bizName,l.address,...(l.contacts||[]).map(c=>c.name+' '+c.title),...(l.phoneEmails||[]).map(p=>p.value)].join(' ').toLowerCase();if(!h.includes(q))return false;}if(cFilter==='hot')return l.temp==='hot';if(cFilter==='warm')return l.temp==='warm';if(cFilter==='cool')return l.temp==='cool';if(cFilter==='followup')return!!l.followupDate;if(cFilter==='lease')return l.hasLease==='yes';return true;});document.getElementById('leadsList').innerHTML=list.length?list.map(l=>liHtml(l,cScope==='all')).join(''):`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>${q?'No results':'No prospects yet'}</p><small>Tap + to add one</small></div>`;};
+function liHtml(l,showOwner=false){const tc=l.temp||'';const owner=showOwner?(window._users||[]).find(u=>u.id===l.userId):null;const lv=l.visits&&l.visits.length?fdt(l.visits[l.visits.length-1].date):'No visits';const cs=(l.contacts||[]).slice(0,2).map(c=>c.name).filter(Boolean).join(', ');return`<div class="lead-item ${tc}" onclick="showDetail('${l.id}')"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="ln">${l.bizName||'Unnamed Business'}</div>${tc?`<span class="badge b-${tc}">${tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊'} ${tc.charAt(0).toUpperCase()+tc.slice(1)}</span>`:''}</div>${cs?`<div style="font-size:13px;color:var(--txt2)">${cs}</div>`:''}<div class="lm">${l.address?`<span>📍 ${l.address}</span>`:''}<span>🕐 ${lv}</span>${l.followupDate?`<span class="badge b-fu">📅 ${fds(l.followupDate)}</span>`:''}${owner?`<span class="owner-tag" style="background:${owner.color}22;color:${owner.color}">${ini(owner.name)} ${owner.name.split(' ')[0]}</span>`:''}</div></div>`;}
+window.renderToday=function renderToday(){const t=today();const mine=(window._leads||[]).filter(l=>l.userId===window._uid);const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));const miles=todayL.filter(l=>l.address).length*8;const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});let html=`<div style="background:var(--navyd);color:#fff;border-radius:var(--r);padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:var(--fd);font-size:18px">Today's Route</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">${dn}</div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700;color:var(--gold);font-family:var(--fd)">${todayL.length}</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Stops</div></div></div>`;if(todayL.length){html+=`<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px"><div style="font-size:24px;font-weight:700;color:var(--navy);font-family:var(--fd)">~${miles} mi</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Est. round trip from Coastal Business Systems, Redding</div></div><div class="sec">Businesses Visited</div>${todayL.map(l=>liHtml(l)).join('')}`;}else{html+=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><p>No visits today</p><small>Get out there and prospect!</small></div>`;}document.getElementById('todayContent').innerHTML=html;};
+function renderDetail(id){const l=(window._leads||[]).find(x=>x.id===id);if(!l)return;const tc=l.temp||'';const isOwner=l.userId===window._uid;const owner=(window._users||[]).find(u=>u.id===l.userId);let h=`<div class="dhdr"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px"><div class="dbiz">${l.bizName||'Unnamed Business'}</div>${tc?`<span class="badge b-${tc}" style="flex-shrink:0">${tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊'} ${tc.charAt(0).toUpperCase()+tc.slice(1)}</span>`:''}</div>${l.address?`<div class="dsub">📍 ${l.address}</div>`:''}${l.status?`<div class="dsub">Status: ${l.status}</div>`:''}${owner&&owner.id!==window._uid?`<div class="dsub" style="margin-top:5px">👤 <strong style="color:${owner.color}">${owner.name}</strong>'s lead</div>`:''}</div>`;if(isOwner){h+=`<div style="display:flex;gap:9px;margin-bottom:13px"><button class="btn btn-primary" style="flex:2" onclick="openEditLead('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Edit</button><button class="btn btn-danger" style="flex:1" onclick="delLead('${id}')">Delete</button></div>`;}
+if(l.followupDate)h+=`<div class="fubar">📅 Follow-up: <strong>${fds(l.followupDate)}</strong></div>`;
+if(l.contacts&&l.contacts.length){h+=`<div class="card"><div class="card-hd">Contacts Spoken To</div><div class="card-bd">`;l.contacts.forEach(c=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">${c.name||'—'}</div>${c.title?`<div style="font-size:12px;color:var(--txt2)">${c.title}</div>`:''}</div>`});h+=`</div></div>`;}
+if(l.needContacts&&l.needContacts.length){h+=`<div class="card"><div class="card-hd">Need to Speak To</div><div class="card-bd">`;l.needContacts.forEach(c=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">${c.name||'—'}</div>${c.title?`<div style="font-size:12px;color:var(--txt2)">${c.title}</div>`:''}${c.notes?`<div style="font-size:12px;color:var(--txt2)">${c.notes}</div>`:''}</div>`});h+=`</div></div>`;}
+if(l.phoneEmails&&l.phoneEmails.length){h+=`<div class="card"><div class="card-hd">Phone &amp; Email</div><div class="card-bd">`;l.phoneEmails.forEach(pe=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-size:11px;color:var(--txt2)">${pe.label||pe.type}</div><div style="font-weight:700">${pe.value}</div></div>`});h+=`</div></div>`;}
+if(l.printerCount||l.totalPages||(l.printers&&l.printers.length)){h+=`<div class="card"><div class="card-hd">Equipment</div><div class="card-bd">`;if(l.printerCount)h+=`<div class="irow"><div class="ilbl">Est. Printers</div><div class="ival">${l.printerCount}</div></div>`;if(l.totalPages)h+=`<div class="irow"><div class="ilbl">Pages/Month</div><div class="ival">${parseInt(l.totalPages).toLocaleString()}</div></div>`;(l.printers||[]).forEach((p,i)=>{h+=`<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">Printer ${i+1}${p.brand?' — '+p.brand:''}${p.model?' '+p.model:''}</div>${p.pages?`<div style="font-size:12px;color:var(--txt2)">${parseInt(p.pages).toLocaleString()} pg/mo</div>`:''}</div>`});h+=`</div></div>`;}
+if(l.hasLease){h+=`<div class="card"><div class="card-hd">Lease Info</div><div class="card-bd"><div class="irow"><div class="ilbl">Has Lease</div><div class="ival">${l.hasLease==='yes'?'Yes':'No'}</div></div>${l.leaseco?`<div class="irow"><div class="ilbl">Leased From</div><div class="ival">${l.leaseco}</div></div>`:''}${l.leaseend?`<div class="irow"><div class="ilbl">Ends</div><div class="ival">${fds(l.leaseend)}</div></div>`:''}</div></div>`;}
+h+=`<div class="card"><div class="card-hd">Visit History (${(l.visits||[]).length})</div><div class="card-bd">`;
+if(l.visits&&l.visits.length)[...l.visits].reverse().forEach(v=>{h+=`<div class="ve"><div class="vd">${fdt(v.date)}</div><div class="vn">${v.notes||'<span style="color:var(--txth)">No notes</span>'}</div></div>`});
+else h+=`<div style="font-size:13px;color:var(--txt2)">No visits recorded</div>`;
+h+=`<div class="divider"></div><div style="font-weight:700;font-size:13px;margin-bottom:7px">Log New Visit Note</div><textarea id="addNoteT" placeholder="Notes for this visit…" style="width:100%;padding:9px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);min-height:66px;background:#fafbfc"></textarea><button class="btn btn-primary btn-sm mt8" onclick="addVisit('${id}')">+ Log Visit</button></div></div>`;
+h+=`<div style="margin-bottom:12px"><button class="btn btn-out" style="width:100%" onclick="goBack()">← Back to Leads</button></div>`;
+document.getElementById('detailContent').innerHTML=h;}
+function addVisit(id){const t=document.getElementById('addNoteT').value.trim();const l=(window._leads||[]).find(x=>x.id===id);if(!l)return;const visits=[...(l.visits||[]),{date:now(),notes:t}];window.fbUpdateLead(id,{visits});}
+function delLead(id){if(!confirm('Delete this prospect? Cannot be undone.'))return;window.fbDeleteLead(id);goBack();}
+function goBack(){showScreen('leads');}
+function openNewLead(prefill={}){editId=null;cTemp='';document.getElementById('modalTitle').textContent='New Prospect';clearForm();if(prefill.biz)document.getElementById('f_biz').value=prefill.biz;if(prefill.notes)document.getElementById('f_notes').value=prefill.notes;addContact();addPE();openModal('leadModal');}
+function openEditLead(id){const l=(window._leads||[]).find(x=>x.id===id);if(!l)return;editId=id;cTemp=l.temp||'';document.getElementById('modalTitle').textContent='Edit Prospect';clearForm();populateForm(l);openModal('leadModal');}
+function clearForm(){['f_biz','f_addr','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_notes'].forEach(i=>{const e=document.getElementById(i);if(e)e.value=''});document.getElementById('f_status').value='';document.getElementById('f_lease').value='';document.querySelectorAll('.topt').forEach(e=>e.classList.remove('sel'));['cCont','nCont','peCont','prCont'].forEach(i=>document.getElementById(i).innerHTML='');}
+function populateForm(l){document.getElementById('f_biz').value=l.bizName||'';document.getElementById('f_addr').value=l.address||'';document.getElementById('f_status').value=l.status||'';document.getElementById('f_fudate').value=l.followupDate||'';document.getElementById('f_pcount').value=l.printerCount||'';document.getElementById('f_tpages').value=l.totalPages||'';document.getElementById('f_lease').value=l.hasLease||'';document.getElementById('f_leaseend').value=l.leaseend||'';document.getElementById('f_leaseco').value=l.leaseco||'';document.getElementById('f_notes').value='';if(l.temp)document.querySelector(`.topt[data-v="${l.temp}"]`)?.classList.add('sel');(l.contacts||[]).forEach(c=>addContact(c));if(!l.contacts?.length)addContact();(l.needContacts||[]).forEach(c=>addNeedContact(c));(l.phoneEmails||[]).forEach(p=>addPE(p));if(!l.phoneEmails?.length)addPE();(l.printers||[]).forEach(p=>addPrinter(p));}
+function selTemp(v){cTemp=v;document.querySelectorAll('.topt').forEach(e=>e.classList.remove('sel'));document.querySelector(`.topt[data-v="${v}"]`)?.classList.add('sel');}
+function addContact(d={}){const id=gid(),div=document.createElement('div');div.className='ce';div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button><div class="field"><label>Name</label><input type="text" value="${d.name||''}" placeholder="Jane Smith" data-f="name" data-t="c" data-id="${id}"></div><div class="field"><label>Title</label><input type="text" value="${d.title||''}" placeholder="Office Manager" data-f="title" data-t="c" data-id="${id}"></div>`;document.getElementById('cCont').appendChild(div);}
+function addNeedContact(d={}){const id=gid(),div=document.createElement('div');div.className='ce';div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button><div class="field"><label>Name / Role</label><input type="text" value="${d.name||''}" placeholder="Owner, IT Manager…" data-f="name" data-t="n" data-id="${id}"></div><div class="field"><label>Title</label><input type="text" value="${d.title||''}" placeholder="Decision maker" data-f="title" data-t="n" data-id="${id}"></div><div class="field"><label>Notes</label><input type="text" value="${d.notes||''}" placeholder="Best time to reach" data-f="notes" data-t="n" data-id="${id}"></div>`;document.getElementById('nCont').appendChild(div);}
+function addPE(d={}){const id=gid(),div=document.createElement('div');div.className='ce';div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button><div class="field2"><div><label>Type</label><select data-f="type" data-t="pe" data-id="${id}"><option>Phone</option><option>Cell</option><option>Office Phone</option><option>Email</option><option>Direct Email</option><option>Boss Email</option><option>General Email</option></select></div><div><label>Label</label><input type="text" value="${d.label||''}" placeholder="Jane's cell" data-f="label" data-t="pe" data-id="${id}"></div></div><div class="field"><label>Number / Address</label><input type="text" value="${d.value||''}" placeholder="(530) 555-0100" data-f="value" data-t="pe" data-id="${id}"></div>`;if(d.type)div.querySelector('[data-f="type"]').value=d.type;document.getElementById('peCont').appendChild(div);}
+function addPrinter(d={}){const id=gid(),div=document.createElement('div');div.className='ce';div.innerHTML=`<button class="crm" onclick="this.parentElement.remove()">×</button><div class="field2"><div><label>Brand</label><input type="text" value="${d.brand||''}" placeholder="Ricoh…" data-f="brand" data-t="pr" data-id="${id}"></div><div><label>Model</label><input type="text" value="${d.model||''}" placeholder="MP 2555" data-f="model" data-t="pr" data-id="${id}"></div></div><div class="field"><label>Pages/Month</label><input type="number" value="${d.pages||''}" placeholder="0" min="0" data-f="pages" data-t="pr" data-id="${id}"></div>`;document.getElementById('prCont').appendChild(div);}
+function collectEntries(cid,t){const g={};document.getElementById(cid).querySelectorAll(`[data-t="${t}"]`).forEach(e=>{if(!g[e.dataset.id])g[e.dataset.id]={};g[e.dataset.id][e.dataset.f]=e.value;});return Object.values(g).filter(o=>Object.values(o).some(v=>v));}
+function saveLead(){const noteText=document.getElementById('f_notes').value.trim();const data={bizName:document.getElementById('f_biz').value.trim(),address:document.getElementById('f_addr').value.trim(),temp:cTemp,status:document.getElementById('f_status').value,followupDate:document.getElementById('f_fudate').value,contacts:collectEntries('cCont','c'),needContacts:collectEntries('nCont','n'),phoneEmails:collectEntries('peCont','pe'),printerCount:document.getElementById('f_pcount').value,totalPages:document.getElementById('f_tpages').value,printers:collectEntries('prCont','pr'),hasLease:document.getElementById('f_lease').value,leaseend:document.getElementById('f_leaseend').value,leaseco:document.getElementById('f_leaseco').value.trim(),userId:window._uid,lat:pendingLatLng?.lat||null,lng:pendingLatLng?.lng||null,pinColor};if(editId){const l=(window._leads||[]).find(x=>x.id===editId);if(noteText&&l)data.visits=[...(l.visits||[]),{date:now(),notes:noteText}];window.fbSaveLead(data,editId);}else{data.visits=noteText?[{date:now(),notes:noteText}]:[];window.fbSaveLead(data,null);}pendingLatLng=null;if(pendingMarker){map&&map.removeLayer(pendingMarker);pendingMarker=null;}closeModal('leadModal');showScreen('leads');}
 let streetLayer,satLayer;
-
-function initMap(){
-  if(map){refreshMapMarkers();return}
-  map=L.map('mapContainer',{
-    center:CENTER,zoom:9,
-    maxBounds:BOUNDS,maxBoundsViscosity:0.9,
-    minZoom:7,maxZoom:18,
-    zoomControl:false
-  });
-  L.control.zoom({position:'bottomright'}).addTo(map);
-  streetLayer=L.tileLayer(STREET_URL,{attribution:'© OpenStreetMap'});
-  satLayer=L.tileLayer(SAT_URL,{attribution:'© Esri'});
-  streetLayer.addTo(map);
-  map.on('click',onMapClick);
-  refreshMapMarkers();
-}
-
-function toggleMapStyle(){
-  satOn=!satOn;
-  if(satOn){map.removeLayer(streetLayer);satLayer.addTo(map);}
-  else{map.removeLayer(satLayer);streetLayer.addTo(map);}
-  document.getElementById('toggleSatBtn').classList.toggle('active-mode',satOn);
-  document.getElementById('toggleSatBtn').querySelector('span')||0;
-}
-
-function toggleDropMode(){
-  dropMode=!dropMode;
-  document.getElementById('dropModeBtn').classList.toggle('active-mode',dropMode);
-  document.getElementById('mapTip').classList.toggle('show',dropMode);
-  map.getContainer().style.cursor=dropMode?'crosshair':'';
-}
-
-function onMapClick(e){
-  if(!dropMode)return;
-  if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}
-  pendingLatLng=e.latlng;
-  // Show drop modal
-  document.getElementById('dp_biz').value='';
-  document.getElementById('dp_addr').value=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;
-  document.getElementById('dp_note').value='';
-  buildPinColorGrid();
-  // Add temporary marker
-  pendingMarker=L.circleMarker(e.latlng,{radius:10,color:'#fff',weight:2,fillColor:pinColor,fillOpacity:0.9}).addTo(map);
-  openModal('dropModal');
-}
-
-function buildPinColorGrid(){
-  document.getElementById('pinColorGrid').innerHTML=PIN_COLORS.map(c=>
-    `<div class="pcol${c===pinColor?' sel':''}" style="background:${c}" onclick="setPinColor('${c}',this)"></div>`
-  ).join('');
-}
-function setPinColor(c,el){
-  pinColor=c;
-  document.querySelectorAll('.pcol').forEach(p=>p.classList.remove('sel'));
-  el.classList.add('sel');
-  if(pendingMarker)pendingMarker.setStyle({fillColor:c});
-}
-
-function cancelDrop(){
-  if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}
-  pendingLatLng=null;dropMode=false;
-  document.getElementById('dropModeBtn').classList.remove('active-mode');
-  document.getElementById('mapTip').classList.remove('show');
-  map.getContainer().style.cursor='';
-  closeModal('dropModal');
-}
-
-function confirmDrop(){
-  if(!pendingLatLng){closeModal('dropModal');return;}
-  if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}
-  const biz=document.getElementById('dp_biz').value.trim();
-  const note=document.getElementById('dp_note').value.trim();
-  dropMode=false;
-  document.getElementById('dropModeBtn').classList.remove('active-mode');
-  document.getElementById('mapTip').classList.remove('show');
-  map.getContainer().style.cursor='';
-  closeModal('dropModal');
-  // Open full lead form with prefill
-  openNewLead({biz,addr:biz?'':document.getElementById('dp_addr').value,notes:note});
-}
-
-function refreshMapMarkers(){
-  if(!map)return;
-  map.eachLayer(l=>{if(l instanceof L.CircleMarker||l instanceof L.Marker)map.removeLayer(l)});
-  db.leads.forEach(l=>{
-    if(!l.lat||!l.lng)return;
-    const col=l.pinColor||(l.temp==='hot'?'var(--hot)':l.temp==='warm'?'var(--warm)':l.temp==='cool'?'var(--cool)':'var(--cold)');
-    const resolvedCol=col.startsWith('var(')
-      ?{hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'}[l.temp]||'#7f8c8d'
-      :col;
-    const mk=L.circleMarker([l.lat,l.lng],{radius:10,color:'#fff',weight:2,fillColor:resolvedCol,fillOpacity:0.9}).addTo(map);
-    mk.bindPopup(`<div style="font-family:var(--ff);min-width:140px">
-      <div style="font-weight:700;font-size:14px;margin-bottom:3px">${l.bizName||'Unnamed'}</div>
-      ${l.address?`<div style="font-size:12px;color:#555;margin-bottom:5px">${l.address}</div>`:''}
-      ${l.temp?`<div style="font-size:11px;font-weight:700;color:${resolvedCol};text-transform:uppercase">${l.temp} lead</div>`:''}
-      <div style="margin-top:8px"><a href="#" onclick="event.preventDefault();closePopupAndDetail('${l.id}')" style="font-size:12px;font-weight:700;color:#0a3d62">View Full Details →</a></div>
-    </div>`,{maxWidth:200});
-  });
-}
-
-function closePopupAndDetail(id){map.closePopup();showDetail(id)}
-
-function locateMe(){
-  if(!navigator.geolocation){alert('Location not available');return}
-  navigator.geolocation.getCurrentPosition(p=>{
-    const ll=[p.coords.latitude,p.coords.longitude];
-    if(!BOUNDS.contains(ll)){alert('Your location appears to be outside Northern California.');return}
-    map.setView(ll,14);
-    L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:'#1a6b3a',fillOpacity:1}).addTo(map)
-      .bindPopup('<b>You are here</b>').openPopup();
-  },()=>alert('Could not get your location.'));
-}
-
-// ═══════════════════════════════════════════════
-//  SETTINGS
-// ═══════════════════════════════════════════════
-function renderSettings(){renderSettingsUsers()}
-function renderSettingsUsers(){
-  document.getElementById('settingsUsers').innerHTML=db.users.map(u=>`
-    <div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--bord)">
-      <div style="width:34px;height:34px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${ini(u.name)}</div>
-      <div style="flex:1"><div style="font-weight:700">${u.name}</div><div style="font-size:11px;color:var(--txt2)">${db.leads.filter(l=>l.userId===u.id).length} prospects</div></div>
-      ${u.id===uid?'<span class="badge b-fu">Active</span>':''}
-    </div>`).join('');
-}
-
-function exportCSV(){
-  const scope=document.getElementById('expScope').value;
-  const pool=scope==='all'?db.leads:db.leads.filter(l=>l.userId===uid);
-  if(!pool.length){alert('No leads to export.');return}
-  const rows=[['Business','Address','Owner','Temp','Status','Follow-Up','Contacts','Need To See','Phone/Email','Est Printers','Pages/Mo','Printer Detail','Has Lease','Lease Co','Lease End','Visits','Last Visit','Last Notes','Created']];
-  pool.forEach(l=>{
-    const owner=db.users.find(u=>u.id===l.userId);
-    rows.push([
-      l.bizName||'',l.address||'',owner?.name||'',l.temp||'',l.status||'',l.followupDate||'',
-      (l.contacts||[]).map(c=>c.name).filter(Boolean).join('; '),
-      (l.needContacts||[]).map(c=>c.name).filter(Boolean).join('; '),
-      (l.phoneEmails||[]).map(p=>`${p.label||p.type}: ${p.value}`).join('; '),
-      l.printerCount||'',l.totalPages||'',
-      (l.printers||[]).map(p=>`${p.brand||''} ${p.model||''} (${p.pages||0}pg/mo)`.trim()).join('; '),
-      l.hasLease||'',l.leaseco||'',l.leaseend||'',
-      (l.visits||[]).length,
-      l.visits?.length?fdt(l.visits[l.visits.length-1].date):'',
-      l.visits?.length?l.visits[l.visits.length-1].notes:'',
-      fdt(l.createdAt)
-    ]);
-  });
-  const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
-  a.download=`coastal-prospector-${scope}-${today()}.csv`;a.click();
-}
-
-function exportDay(){
-  const t=today();
-  const u=cu();
-  const tl=db.leads.filter(l=>l.userId===uid&&l.visits?.some(v=>v.date.startsWith(t)));
-  if(!tl.length){alert('No visits logged today.');return}
-  const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  let txt=`DAILY ACTIVITY REPORT\n${u?.name||'Rep'} — ${dn}\n${'='.repeat(50)}\nBUSINESSES VISITED: ${tl.length}\nESTIMATED MILES: ~${tl.filter(l=>l.address).length*8} mi\n\n`;
-  tl.forEach((l,i)=>{
-    txt+=`${i+1}. ${l.bizName||'Unnamed'}\n`;
-    if(l.address)txt+=`   Address: ${l.address}\n`;
-    if(l.temp)txt+=`   Lead Temp: ${l.temp.toUpperCase()}\n`;
-    const cs=(l.contacts||[]).filter(c=>c.name);
-    if(cs.length)txt+=`   Spoke with: ${cs.map(c=>`${c.name}${c.title?' ('+c.title+')':''}`).join(', ')}\n`;
-    const tv=l.visits?.find(v=>v.date.startsWith(t));
-    if(tv?.notes)txt+=`   Notes: ${tv.notes}\n`;
-    txt+='\n';
-  });
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));
-  a.download=`day-report-${t}.txt`;a.click();
-}
-
-init();
+function initMap(){if(map){refreshMapMarkers();return;}map=L.map('mapContainer',{center:CENTER,zoom:9,maxBounds:BOUNDS,maxBoundsViscosity:0.9,minZoom:7,maxZoom:18,zoomControl:false});L.control.zoom({position:'bottomright'}).addTo(map);streetLayer=L.tileLayer(STREET,{attribution:'© OpenStreetMap'});satLayer=L.tileLayer(SAT,{attribution:'© Esri'});streetLayer.addTo(map);map.on('click',onMapClick);refreshMapMarkers();}
+function toggleSat(){satOn=!satOn;if(satOn){map.removeLayer(streetLayer);satLayer.addTo(map);}else{map.removeLayer(satLayer);streetLayer.addTo(map);}document.getElementById('satBtn').classList.toggle('on',satOn);}
+function toggleDrop(){dropMode=!dropMode;document.getElementById('dropBtn').classList.toggle('on',dropMode);document.getElementById('mapTip').classList.toggle('show',dropMode);if(map)map.getContainer().style.cursor=dropMode?'crosshair':'';}
+function onMapClick(e){if(!dropMode)return;if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}pendingLatLng=e.latlng;document.getElementById('dp_biz').value='';document.getElementById('dp_addr').value=`${e.latlng.lat.toFixed(5)}, ${e.latlng.lng.toFixed(5)}`;document.getElementById('dp_note').value='';buildPinGrid();pendingMarker=L.circleMarker(e.latlng,{radius:10,color:'#fff',weight:2,fillColor:pinColor,fillOpacity:.9}).addTo(map);openModal('dropModal');}
+function buildPinGrid(){document.getElementById('pinColorGrid').innerHTML=PIN_COLORS.map(c=>`<div class="pcol${c===pinColor?' sel':''}" style="background:${c}" onclick="setPinColor('${c}',this)"></div>`).join('');}
+function setPinColor(c,el){pinColor=c;document.querySelectorAll('.pcol').forEach(p=>p.classList.remove('sel'));el.classList.add('sel');if(pendingMarker)pendingMarker.setStyle({fillColor:c});}
+function cancelDrop(){if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}pendingLatLng=null;dropMode=false;document.getElementById('dropBtn').classList.remove('on');document.getElementById('mapTip').classList.remove('show');if(map)map.getContainer().style.cursor='';closeModal('dropModal');}
+function confirmDrop(){if(!pendingLatLng){closeModal('dropModal');return;}if(pendingMarker){map.removeLayer(pendingMarker);pendingMarker=null;}const biz=document.getElementById('dp_biz').value.trim();const note=document.getElementById('dp_note').value.trim();dropMode=false;document.getElementById('dropBtn').classList.remove('on');document.getElementById('mapTip').classList.remove('show');if(map)map.getContainer().style.cursor='';closeModal('dropModal');openNewLead({biz,notes:note});}
+window.refreshMapMarkers=function refreshMapMarkers(){if(!map)return;map.eachLayer(l=>{if(l instanceof L.CircleMarker)map.removeLayer(l);});(window._leads||[]).forEach(l=>{if(!l.lat||!l.lng)return;const cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};const col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');const mk=L.circleMarker([l.lat,l.lng],{radius:10,color:'#fff',weight:2,fillColor:col,fillOpacity:.9}).addTo(map);const owner=(window._users||[]).find(u=>u.id===l.userId);mk.bindPopup(`<div style="font-family:var(--ff);min-width:140px"><div style="font-weight:700;font-size:14px;margin-bottom:3px">${l.bizName||'Unnamed'}</div>${l.address?`<div style="font-size:12px;color:#555;margin-bottom:4px">${l.address}</div>`:''}${l.temp?`<div style="font-size:11px;font-weight:700;color:${col};text-transform:uppercase;margin-bottom:4px">${l.temp} lead</div>`:''}${owner?`<div style="font-size:11px;color:#666;margin-bottom:6px">By ${owner.name}</div>`:''}<a href="#" onclick="event.preventDefault();map.closePopup();showDetail('${l.id}')" style="font-size:12px;font-weight:700;color:#0a3d62">View Details →</a></div>`,{maxWidth:200});});};
+function locateMe(){if(!navigator.geolocation){alert('Location not available');return;}navigator.geolocation.getCurrentPosition(p=>{const ll=[p.coords.latitude,p.coords.longitude];if(!BOUNDS.contains(ll)){alert('Your location appears to be outside Northern California.');return;}map.setView(ll,14);L.circleMarker(ll,{radius:8,color:'#fff',weight:2,fillColor:'#1a6b3a',fillOpacity:1}).addTo(map).bindPopup('<b>You are here</b>').openPopup();},()=>alert('Could not get your location.'));}
+function renderSettings(){renderSettingsUsers();}
+function renderSettingsUsers(){const el=document.getElementById('settingsUsers');if(!el)return;el.innerHTML=(window._users||[]).map(u=>`<div style="display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--bord)"><div style="width:34px;height:34px;border-radius:50%;background:${u.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${ini(u.name)}</div><div style="flex:1"><div style="font-weight:700">${u.name}</div><div style="font-size:11px;color:var(--txt2)">${(window._leads||[]).filter(l=>l.userId===u.id).length} prospects</div></div>${u.id===window._uid?'<span class="badge b-fu">Active</span>':''}</div>`).join('');}
+function exportCSV(){const scope=document.getElementById('expScope').value;const pool=scope==='all'?window._leads:(window._leads||[]).filter(l=>l.userId===window._uid);if(!pool.length){alert('No leads to export.');return;}const rows=[['Business','Address','Owner','Temp','Status','Follow-Up','Contacts','Need To See','Phone/Email','Est Printers','Pages/Mo','Printer Detail','Has Lease','Lease Co','Lease End','Visits','Last Visit','Last Notes','Created']];pool.forEach(l=>{const owner=(window._users||[]).find(u=>u.id===l.userId);rows.push([l.bizName||'',l.address||'',owner?.name||'',l.temp||'',l.status||'',l.followupDate||'',(l.contacts||[]).map(c=>c.name).filter(Boolean).join('; '),(l.needContacts||[]).map(c=>c.name).filter(Boolean).join('; '),(l.phoneEmails||[]).map(p=>`${p.label||p.type}: ${p.value}`).join('; '),l.printerCount||'',l.totalPages||'',(l.printers||[]).map(p=>`${p.brand||''} ${p.model||''} (${p.pages||0}pg/mo)`.trim()).join('; '),l.hasLease||'',l.leaseco||'',l.leaseend||'',(l.visits||[]).length,l.visits?.length?fdt(l.visits[l.visits.length-1].date):'',l.visits?.length?l.visits[l.visits.length-1].notes:'',fdt(l.createdAt)]);});const csv=rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(',')).join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));a.download=`coastal-prospector-${scope}-${today()}.csv`;a.click();}
+function exportDay(){const t=today(),u=cu();const tl=(window._leads||[]).filter(l=>l.userId===window._uid&&l.visits?.some(v=>v.date.startsWith(t)));if(!tl.length){alert('No visits logged today.');return;}const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});let txt=`DAILY ACTIVITY REPORT\n${u?.name||'Rep'} — ${dn}\n${'='.repeat(50)}\nBUSINESSES VISITED: ${tl.length}\nESTIMATED MILES: ~${tl.filter(l=>l.address).length*8} mi\n\n`;tl.forEach((l,i)=>{txt+=`${i+1}. ${l.bizName||'Unnamed'}\n`;if(l.address)txt+=`   Address: ${l.address}\n`;if(l.temp)txt+=`   Lead Temp: ${l.temp.toUpperCase()}\n`;const cs=(l.contacts||[]).filter(c=>c.name);if(cs.length)txt+=`   Spoke with: ${cs.map(c=>`${c.name}${c.title?' ('+c.title+')':''}`).join(', ')}\n`;const tv=l.visits?.find(v=>v.date.startsWith(t));if(tv?.notes)txt+=`   Notes: ${tv.notes}\n`;txt+='\n';});const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain'}));a.download=`day-report-${t}.txt`;a.click();}
 </script>
 </body>
 </html>
