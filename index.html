@@ -1284,7 +1284,7 @@ function onMapClick(e){
   if(quickMode){
     pendingLatLng=e.latlng;
     if(pendingMarker)map.removeLayer(pendingMarker);
-    pendingMarker=L.circleMarker(e.latlng,{radius:9,color:'#fff',weight:2,fillColor:var(--gold)||'#d4a843',fillOpacity:.95}).addTo(map);
+    pendingMarker=L.circleMarker(e.latlng,{radius:9,color:'#fff',weight:2,fillColor:'#d4a843',fillOpacity:.95}).addTo(map);
     document.getElementById('qa_biz').focus();
     return;
   }
