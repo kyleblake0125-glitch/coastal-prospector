@@ -337,7 +337,14 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
           <button class="toggle" id="darkToggle" onclick="toggleDark()"></button>
         </div>
       </div></div>
-      <div class="sec">Install on Phone</div>
+      <div class="sec">Google Places API (Optional Upgrade)</div>
+<div class="exp-card">
+  <h3>🗺 Upgrade Business Search</h3>
+  <p>Add your Google Places API key to get much better business name search results — including phone numbers, business types, and multiple locations. Free tier covers ~11,700 searches/month.</p>
+  <div class="field"><label>Google Places API Key</label><input type="text" id="googleApiKey" placeholder="AIza…" oninput="saveGoogleKey()" style="font-size:13px"></div>
+  <div style="font-size:12px;color:var(--txt2)">Get a key at console.cloud.google.com → APIs & Services → Credentials. Enable "Places API" and "Maps JavaScript API".</div>
+</div>
+<div class="sec">Install on Phone</div>
       <div class="card"><div class="card-bd">
         <div style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this URL in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div></div>
         <div><div style="font-weight:700;margin-bottom:4px">🤖 Android (Chrome)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open in Chrome<br>2. Tap ⋮ → "Add to Home screen"</div></div>
@@ -387,7 +394,15 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 
 <div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
-<div class="field"><label>Business Name</label><input type="text" id="f_biz" placeholder="Acme Corporation"></div>
+<div class="field"><label>Business Name</label>
+  <div class="addr-wrap">
+    <div style="display:flex;gap:7px">
+      <input type="text" id="f_biz" placeholder="Acme Corporation" autocomplete="off" style="flex:1" oninput="bizNameChanged()">
+      <button type="button" onclick="searchBusiness()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:0 13px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;white-space:nowrap;flex-shrink:0">🔍 Search</button>
+    </div>
+    <div class="addr-suggestions" id="bizSuggestions" style="display:none"></div>
+  </div>
+</div>
 <div class="field"><label>Address</label>
   <div class="addr-wrap">
     <input type="text" id="f_addr" placeholder="123 Main St, Redding, CA" autocomplete="off" oninput="addrAutocomplete(this.value)" onblur="setTimeout(closeAddrSuggestions,200)">
@@ -989,6 +1004,218 @@ function exportDay(){
   dl(txt,'day-report-'+t+'.txt','text/plain');
 }
 function dl(content,filename,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));a.download=filename;a.click();}
+
+// ── GOOGLE PLACES KEY ─────────────────────────────────────────────────
+function saveGoogleKey(){
+  var key=document.getElementById('googleApiKey').value.trim();
+  localStorage.setItem('cbs_gkey',key);
+}
+function loadGoogleKey(){
+  var key=localStorage.getItem('cbs_gkey')||'';
+  var el=document.getElementById('googleApiKey');
+  if(el)el.value=key;
+  return key;
+}
+
+// ── BUSINESS NAME SEARCH ──────────────────────────────────────────────
+var bizSearchTimer=null;
+function bizNameChanged(){
+  // Auto-search after user stops typing for 600ms
+  clearTimeout(bizSearchTimer);
+  var val=document.getElementById('f_biz').value.trim();
+  if(val.length<3){closeBizSuggestions();return;}
+  bizSearchTimer=setTimeout(function(){searchBusiness();},600);
+}
+
+function searchBusiness(){
+  var name=document.getElementById('f_biz').value.trim();
+  if(!name){alert('Enter a business name to search.');return;}
+  var gkey=localStorage.getItem('cbs_gkey')||'';
+  if(gkey&&gkey.length>10){
+    searchBusinessGoogle(name,gkey);
+  } else {
+    searchBusinessOSM(name);
+  }
+}
+
+// ── GOOGLE PLACES SEARCH (when API key is set) ────────────────────────
+function searchBusinessGoogle(name,apiKey){
+  var box=document.getElementById('bizSuggestions');
+  box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">Searching…</div>';
+  box.style.display='block';
+  // Use Places Text Search
+  var url='https://maps.googleapis.com/maps/api/place/textsearch/json?query='+encodeURIComponent(name)+
+    '&location=40.8,-122.3&radius=80000&key='+apiKey;
+  // Note: Direct CORS call won't work from browser for Places API
+  // Use Places Autocomplete JS API instead via dynamic script
+  loadGooglePlacesScript(apiKey,function(){
+    var service=new google.maps.places.PlacesService(document.createElement('div'));
+    var req={query:name,location:new google.maps.LatLng(40.8,-122.3),radius:80000};
+    service.textSearch(req,function(results,status){
+      if(status==='OK'&&results&&results.length){
+        showBizResults(results.map(function(r){
+          return {
+            name:r.name,
+            address:r.formatted_address,
+            phone:r.formatted_phone_number||'',
+            bizType:r.types&&r.types[0]?r.types[0].replace(/_/g,' '):'',
+            lat:r.geometry&&r.geometry.location?r.geometry.location.lat():null,
+            lng:r.geometry&&r.geometry.location?r.geometry.location.lng():null,
+            placeId:r.place_id
+          };
+        }));
+      } else {
+        // Fallback to OSM if Google fails
+        searchBusinessOSM(name);
+      }
+    });
+  });
+}
+
+var googlePlacesLoaded=false;
+function loadGooglePlacesScript(apiKey,callback){
+  if(googlePlacesLoaded&&window.google&&window.google.maps){callback();return;}
+  var s=document.createElement('script');
+  s.src='https://maps.googleapis.com/maps/api/js?key='+apiKey+'&libraries=places';
+  s.onload=function(){googlePlacesLoaded=true;callback();};
+  document.head.appendChild(s);
+}
+
+// ── OPENSTREETMAP NOMINATIM SEARCH (free fallback) ────────────────────
+function searchBusinessOSM(name){
+  var box=document.getElementById('bizSuggestions');
+  box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">Searching…</div>';
+  box.style.display='block';
+  // Search with NorCal bias — try named business first
+  var url='https://nominatim.openstreetmap.org/search?format=json&q='+
+    encodeURIComponent(name)+
+    '&addressdetails=1&limit=8&bounded=0&viewbox=-124.5,42.1,-120.0,39.5'+
+    '&countrycodes=us&featuretype=amenity,shop,office,commercial';
+  fetch(url,{headers:{'Accept-Language':'en-US,en'}})
+    .then(function(r){return r.json();})
+    .then(function(results){
+      if(!results||!results.length){
+        // Broaden search to all of California
+        return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+
+          encodeURIComponent(name+', California')+'&addressdetails=1&limit=6&countrycodes=us',
+          {headers:{'Accept-Language':'en-US,en'}})
+          .then(function(r){return r.json();});
+      }
+      return results;
+    })
+    .then(function(results){
+      if(!results||!results.length){
+        box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">No results found. Try a more specific name or enter the address manually.</div>';
+        return;
+      }
+      // Filter to most relevant results
+      var filtered=results.filter(function(r){
+        var t=r.type||'';var c=r.class||'';
+        // Prioritize commercial/business results
+        return c==='amenity'||c==='shop'||c==='office'||c==='commercial'||
+               c==='building'||c==='landuse'||t==='yes'||results.length<=3;
+      });
+      if(!filtered.length)filtered=results;
+      showBizResults(filtered.slice(0,6).map(function(r){
+        var addr=r.display_name||'';
+        // Clean up the address - remove country
+        addr=addr.replace(', United States','').replace(', USA','');
+        // Build a cleaner address from components
+        var a=r.address||{};
+        var street=(a.house_number?a.house_number+' ':'')+
+          (a.road||a.pedestrian||a.footway||'');
+        var city=a.city||a.town||a.village||a.hamlet||a.county||'';
+        var state=a.state||'';
+        var zip=a.postcode||'';
+        var cleanAddr=street?(street+(city?', '+city:'')+(state?', '+state:'')+(zip?' '+zip:'')):'';
+        // Determine business type from OSM tags
+        var btype='';
+        if(r.class==='amenity')btype=r.type?r.type.replace(/_/g,' '):'';
+        else if(r.class==='shop')btype='Retail';
+        else if(r.class==='office')btype='Office';
+        return {
+          name:r.name||r.display_name.split(',')[0],
+          address:cleanAddr||addr.split(',').slice(0,3).join(','),
+          phone:'',
+          bizType:btype,
+          lat:parseFloat(r.lat),
+          lng:parseFloat(r.lon)
+        };
+      }));
+    })
+    .catch(function(err){
+      box.innerHTML='<div class="addr-suggestion" style="color:var(--hot)">Search failed. Check your internet connection.</div>';
+    });
+}
+
+function showBizResults(results){
+  var box=document.getElementById('bizSuggestions');
+  if(!results||!results.length){
+    box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">No results. Try a different name or enter manually.</div>';
+    return;
+  }
+  box.innerHTML='';
+  results.forEach(function(r){
+    var div=document.createElement('div');
+    div.className='addr-suggestion';
+    div.innerHTML='<strong>'+escHtml(r.name)+'</strong>'+(r.address?'<br><span style="font-size:11px;color:var(--txt2)">'+escHtml(r.address)+'</span>':'')+(r.bizType?'<span style="font-size:10px;color:var(--txth);margin-left:6px">'+escHtml(r.bizType)+'</span>':'');
+    div.addEventListener('mousedown',function(){selectBizResult(r);});
+    div.addEventListener('touchstart',function(e){e.preventDefault();selectBizResult(r);});
+    box.appendChild(div);
+  });
+  box.style.display='block';
+}
+
+function escHtml(str){
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function selectBizResult(r){
+  // Fill in form fields
+  if(r.name)document.getElementById('f_biz').value=r.name;
+  if(r.address)document.getElementById('f_addr').value=r.address;
+  if(r.bizType){
+    // Try to match to our dropdown options
+    var bizTypeEl=document.getElementById('f_biztype');
+    var opts=[].slice.call(bizTypeEl.options);
+    var match=opts.find(function(o){return o.value.toLowerCase().includes(r.bizType.toLowerCase())||r.bizType.toLowerCase().includes(o.value.toLowerCase().replace(' / ','').replace('/',''));});
+    if(match)bizTypeEl.value=match.value;
+  }
+  if(r.phone){
+    // Add phone if field is empty
+    var peContainer=document.getElementById('peCont');
+    if(peContainer&&!peContainer.querySelector('[data-f="value"]')){
+      addPE({type:'Phone',label:'Office',value:r.phone});
+    }
+  }
+  // Set lat/lng for auto-pin
+  if(r.lat&&r.lng){
+    pendingLatLng={lat:r.lat,lng:r.lng};
+  }
+  closeBizSuggestions();
+  // Show confirmation
+  var status=document.createElement('div');
+  status.style.cssText='font-size:12px;color:var(--green);margin-top:5px;font-weight:600';
+  status.textContent='✅ Business info filled in'+(r.lat?' — pin location set':'');
+  var wrap=document.getElementById('f_biz').closest('.addr-wrap');
+  var existing=wrap.querySelector('.fill-confirm');
+  if(existing)existing.remove();
+  status.className='fill-confirm';
+  wrap.appendChild(status);
+  setTimeout(function(){if(status.parentNode)status.parentNode.removeChild(status);},3000);
+}
+
+function closeBizSuggestions(){
+  var box=document.getElementById('bizSuggestions');
+  if(box)box.style.display='none';
+}
+
+// Load saved Google key on settings open
+var _origShowScreen=showScreen;
+showScreen=function(name){
+  _origShowScreen(name);
+  if(name==='settings')loadGoogleKey();
+};
 
 // ── ADDRESS AUTOCOMPLETE (Nominatim, NorCal bounded) ─────────────────
 var addrTimer=null;
