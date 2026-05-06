@@ -170,6 +170,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .toggle.on{background:var(--green)}
 .toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .toggle.on::after{left:23px}
+/* ADDRESS AUTOCOMPLETE */
+.addr-wrap{position:relative}
+.addr-suggestions{position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1.5px solid var(--navy);border-top:none;border-radius:0 0 var(--rsm) var(--rsm);z-index:200;max-height:200px;overflow-y:auto;box-shadow:var(--shlg)}
+.addr-suggestion{padding:10px 13px;font-size:13px;color:var(--txt);cursor:pointer;border-bottom:1px solid var(--bord)}
+.addr-suggestion:last-child{border:none}
+.addr-suggestion:active,.addr-suggestion:hover{background:var(--goldp)}
+.addr-suggestion strong{color:var(--navy)}
+/* VOICE NOTE */
+.voice-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px;background:var(--navy);color:#fff;border:none;border-radius:var(--r);font-size:15px;font-weight:600;font-family:var(--ff);cursor:pointer;margin-bottom:12px}
+.voice-btn.recording{background:var(--hot);animation:pulse 1s infinite}
+.voice-btn svg{width:20px;height:20px;flex-shrink:0}
+.voice-status{font-size:13px;color:var(--txt2);text-align:center;margin-bottom:10px;min-height:20px}
+.voice-result{background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px;font-size:13px;color:var(--navy);margin-bottom:12px;display:none;line-height:1.5}
+.voice-result.show{display:block}
+.ai-processing{display:none;text-align:center;padding:14px;font-size:13px;color:var(--txt2)}
+.ai-processing.show{display:flex;align-items:center;justify-content:center;gap:8px}
 </style>
 </head>
 <body>
@@ -372,7 +388,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
 <div class="field"><label>Business Name</label><input type="text" id="f_biz" placeholder="Acme Corporation"></div>
-<div class="field"><label>Address</label><input type="text" id="f_addr" placeholder="123 Main St, Redding, CA"></div>
+<div class="field"><label>Address</label>
+  <div class="addr-wrap">
+    <input type="text" id="f_addr" placeholder="123 Main St, Redding, CA" autocomplete="off" oninput="addrAutocomplete(this.value)" onblur="setTimeout(closeAddrSuggestions,200)">
+    <div class="addr-suggestions" id="addrSuggestions" style="display:none"></div>
+  </div>
+</div>
 <div class="field2">
   <div><label>Business Type</label><select id="f_biztype" style="background:var(--surf);color:var(--txt)"><option value="">— Type —</option><option>Law Office</option><option>Medical / Dental</option><option>Accounting / Finance</option><option>Real Estate</option><option>Insurance</option><option>Manufacturing</option><option>Retail</option><option>Restaurant / Food</option><option>Education</option><option>Government</option><option>Non-Profit</option><option>Construction</option><option>Auto / Dealership</option><option>Other</option></select></div>
   <div><label>Est. # Employees</label><input type="number" id="f_employees" placeholder="0" min="0"></div>
@@ -405,6 +426,20 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <div class="field"><label>Leased From</label><input type="text" id="f_leaseco" placeholder="Lease company name"></div>
 <div class="field"><label>Monthly Lease Amount ($)</label><input type="number" id="f_leaseamt" placeholder="0" min="0"></div>
 <div class="divider"></div>
+<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> AI Voice Note</div>
+<div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--r);padding:14px;margin-bottom:12px">
+  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.5">🎙 Tap record and speak naturally. Claude will automatically extract contact names, printer info, lease details, lead temperature, and more.</div>
+  <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+    Tap to Record
+  </button>
+  <div class="voice-status" id="voiceStatus"></div>
+  <div class="ai-processing" id="aiProcessing">
+    <div class="spinner" style="width:18px;height:18px;border-width:2px"></div>
+    Claude is extracting info from your note…
+  </div>
+  <div class="voice-result" id="voiceResult"></div>
+</div>
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Visit Notes</div>
 <div class="field"><label>Notes for This Visit</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
 </div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="saveLead()">✓ Save Prospect</button></div></div></div>
@@ -954,6 +989,255 @@ function exportDay(){
   dl(txt,'day-report-'+t+'.txt','text/plain');
 }
 function dl(content,filename,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));a.download=filename;a.click();}
+
+// ── ADDRESS AUTOCOMPLETE (Nominatim, NorCal bounded) ─────────────────
+var addrTimer=null;
+function addrAutocomplete(val){
+  clearTimeout(addrTimer);
+  var box=document.getElementById('addrSuggestions');
+  if(!val||val.length<4){box.style.display='none';return;}
+  addrTimer=setTimeout(function(){
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(val)+'&addressdetails=1&limit=5&bounded=1&viewbox=-124.5,42.1,-120.0,39.5&countrycodes=us')
+      .then(function(r){return r.json();})
+      .then(function(results){
+        if(!results||!results.length){box.style.display='none';return;}
+        box.innerHTML=results.map(function(r){
+          var display=r.display_name.replace(/,\s*United States$/,'');
+          var safeDisplay=display.replace(/'/g,'&#39;').replace(/"/g,'&quot;');return '<div class="addr-suggestion" onmousedown="selectAddr(\'' + safeDisplay + '\')">'+display+'</div>';
+        }).join('');
+        box.style.display='block';
+      }).catch(function(){box.style.display='none';});
+  },400);
+}
+function selectAddr(addr){
+  document.getElementById('f_addr').value=addr;
+  document.getElementById('addrSuggestions').style.display='none';
+}
+function closeAddrSuggestions(){
+  var box=document.getElementById('addrSuggestions');
+  if(box)box.style.display='none';
+}
+
+// ── GEOCODE ADDRESS → LAT/LNG ─────────────────────────────────────────
+function geocodeAddress(addr){
+  if(!addr)return Promise.resolve(null);
+  return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1&bounded=1&viewbox=-124.5,42.1,-120.0,39.5&countrycodes=us')
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res&&res[0])return{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)};
+      // Try without bounds for addresses slightly outside
+      return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr+', California')+'&limit=1&countrycodes=us')
+        .then(function(r2){return r2.json();})
+        .then(function(res2){return res2&&res2[0]?{lat:parseFloat(res2[0].lat),lng:parseFloat(res2[0].lon)}:null;});
+    }).catch(function(){return null;});
+}
+
+// ── VOICE RECORDING + AI EXTRACTION ──────────────────────────────────
+var mediaRecorder=null;var audioChunks=[];var isRecording=false;
+
+function toggleRecording(){
+  if(isRecording){stopRecording();}
+  else{startRecording();}
+}
+
+function startRecording(){
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    alert('Voice recording is not supported on this browser. Please use Safari on iPhone or Chrome on Android.');return;
+  }
+  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
+    audioChunks=[];
+    // Use webm if supported (Chrome/Android), fallback to mp4 (Safari/iPhone)
+    var mimeType='audio/webm';
+    if(!MediaRecorder.isTypeSupported('audio/webm'))mimeType='audio/mp4';
+    if(!MediaRecorder.isTypeSupported(mimeType))mimeType='';
+    mediaRecorder=new MediaRecorder(stream,mimeType?{mimeType:mimeType}:{});
+    mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)audioChunks.push(e.data);};
+    mediaRecorder.onstop=function(){processVoiceNote(mimeType||'audio/mp4');stream.getTracks().forEach(function(t){t.stop();});};
+    mediaRecorder.start();
+    isRecording=true;
+    document.getElementById('voiceBtn').classList.add('recording');
+    document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Tap to Stop';
+    document.getElementById('voiceStatus').textContent='🔴 Recording… speak naturally about this prospect';
+    document.getElementById('voiceResult').classList.remove('show');
+  }).catch(function(err){
+    alert('Could not access microphone. Please allow microphone access and try again. Error: '+err.message);
+  });
+}
+
+function stopRecording(){
+  if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}
+  isRecording=false;
+  document.getElementById('voiceBtn').classList.remove('recording');
+  document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Tap to Record';
+  document.getElementById('voiceStatus').textContent='Processing…';
+}
+
+function processVoiceNote(mimeType){
+  if(!audioChunks.length){document.getElementById('voiceStatus').textContent='No audio recorded. Try again.';return;}
+  var blob=new Blob(audioChunks,{type:mimeType||'audio/mp4'});
+  // Convert to base64 and send to Claude for transcription + extraction
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var base64=e.target.result.split(',')[1];
+    document.getElementById('aiProcessing').classList.add('show');
+    document.getElementById('voiceStatus').textContent='';
+    extractInfoFromAudio(base64,mimeType||'audio/mp4');
+  };
+  reader.readAsDataURL(blob);
+}
+
+function extractInfoFromAudio(base64Audio,mimeType){
+  // Send to Claude API with the audio as base64
+  // Claude will transcribe and extract structured info
+  var prompt='You are a sales assistant for an MFP (copier/printer) sales rep. A rep just recorded a voice note after visiting a business prospect. Extract info into this JSON: {"transcription":"full transcription","bizName":"","address":"","bizType":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Only include fields actually mentioned. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      messages:[{
+        role:'user',
+        content:[
+          {type:'text',text:prompt},
+          {type:'document',source:{type:'base64',media_type:mimeType,data:base64Audio}}
+        ]
+      }]
+    })
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    document.getElementById('aiProcessing').classList.remove('show');
+    var text='';
+    if(data.content&&data.content.length){
+      data.content.forEach(function(block){if(block.type==='text')text+=block.text;});
+    }
+    if(!text){
+      // Audio documents not supported - fall back to text-only transcription request
+      transcribeWithWebSpeech();
+      return;
+    }
+    try{
+      var clean=text.replace(/```json|```/g,'').trim();
+      var info=JSON.parse(clean);
+      applyVoiceExtraction(info);
+    } catch(e){
+      // If JSON parse fails, just put transcription in notes
+      document.getElementById('f_notes').value=text;
+      document.getElementById('voiceStatus').textContent='✅ Transcribed — review notes field';
+    }
+  }).catch(function(err){
+    document.getElementById('aiProcessing').classList.remove('show');
+    // Fallback to Web Speech API
+    transcribeWithWebSpeech();
+  });
+}
+
+function transcribeWithWebSpeech(){
+  // Fallback: use Web Speech API for transcription, then send text to Claude
+  if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){
+    document.getElementById('voiceStatus').textContent='Voice transcription not available on this browser. Notes have been saved.';
+    return;
+  }
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  var recognition=new SR();
+  recognition.lang='en-US';recognition.continuous=false;recognition.interimResults=false;
+  recognition.onresult=function(e){
+    var transcript=e.results[0][0].transcript;
+    extractInfoFromText(transcript);
+  };
+  recognition.onerror=function(){
+    document.getElementById('voiceStatus').textContent='Could not transcribe. Please type your notes manually.';
+  };
+  recognition.start();
+}
+
+function extractInfoFromText(transcript){
+  document.getElementById('aiProcessing').classList.add('show');
+  var prompt='You are a sales assistant for an MFP copier/printer sales rep. The rep said: "'+transcript.replace(/'/g,"\'").replace(/\n/g,' ')+'". Extract info into this JSON: {"transcription":"","bizName":"","address":"","bizType":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
+
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    document.getElementById('aiProcessing').classList.remove('show');
+    var text='';
+    if(data.content&&data.content.length)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    try{
+      var info=JSON.parse(text.replace(/```json|```/g,'').trim());
+      applyVoiceExtraction(info);
+    } catch(e){
+      document.getElementById('f_notes').value=transcript;
+      document.getElementById('voiceStatus').textContent='✅ Added to notes — please review';
+    }
+  }).catch(function(){
+    document.getElementById('aiProcessing').classList.remove('show');
+    document.getElementById('f_notes').value=transcript;
+    document.getElementById('voiceStatus').textContent='✅ Added to notes';
+  });
+}
+
+function applyVoiceExtraction(info){
+  // Show what was extracted
+  var extracted=[];
+  if(info.bizName&&!document.getElementById('f_biz').value){document.getElementById('f_biz').value=info.bizName;extracted.push('Business: '+info.bizName);}
+  if(info.address&&!document.getElementById('f_addr').value){document.getElementById('f_addr').value=info.address;extracted.push('Address: '+info.address);}
+  if(info.bizType){document.getElementById('f_biztype').value=info.bizType;extracted.push('Type: '+info.bizType);}
+  if(info.temp){selTemp(info.temp);extracted.push('Temp: '+info.temp);}
+  if(info.status){document.getElementById('f_status').value=info.status;extracted.push('Status: '+info.status);}
+  if(info.followupDate){document.getElementById('f_fudate').value=info.followupDate;extracted.push('Follow-up: '+info.followupDate);}
+  if(info.printerCount){document.getElementById('f_pcount').value=info.printerCount;extracted.push('Printers: '+info.printerCount);}
+  if(info.totalPages){document.getElementById('f_tpages').value=info.totalPages;extracted.push('Pages/mo: '+info.totalPages);}
+  if(info.hasLease){document.getElementById('f_lease').value=info.hasLease;if(info.hasLease==='yes')extracted.push('Has lease: Yes');}
+  if(info.leaseend){document.getElementById('f_leaseend').value=info.leaseend;extracted.push('Lease ends: '+info.leaseend);}
+  if(info.leaseco){document.getElementById('f_leaseco').value=info.leaseco;extracted.push('Leased from: '+info.leaseco);}
+  if(info.leaseamt){document.getElementById('f_leaseamt').value=info.leaseamt;extracted.push('Lease $/mo: '+info.leaseamt);}
+  if(info.notes){document.getElementById('f_notes').value=info.notes;}
+  // Add contacts
+  if(info.contacts&&info.contacts.length){
+    document.getElementById('cCont').innerHTML='';
+    info.contacts.forEach(function(c){if(c.name)addContact(c);});
+    if(info.contacts.some(function(c){return c.name;}))extracted.push('Contacts: '+info.contacts.filter(function(c){return c.name;}).map(function(c){return c.name;}).join(', '));
+  }
+  if(info.needContacts&&info.needContacts.length){
+    info.needContacts.forEach(function(c){if(c.name)addNeedContact(c);});
+    extracted.push('Need to reach: '+info.needContacts.filter(function(c){return c.name;}).map(function(c){return c.name;}).join(', '));
+  }
+  if(info.phoneEmails&&info.phoneEmails.length){
+    document.getElementById('peCont').innerHTML='';
+    info.phoneEmails.forEach(function(p){if(p.value)addPE(p);});
+    if(info.phoneEmails.some(function(p){return p.value;}))extracted.push('Phone/Email added');
+  }
+  if(info.printers&&info.printers.length){
+    info.printers.forEach(function(p){if(p.brand||p.model)addPrinter(p);});
+  }
+  // Show summary
+  var resultEl=document.getElementById('voiceResult');
+  resultEl.innerHTML='<strong>✅ Claude extracted:</strong><br>'+extracted.join('<br>')+(info.transcription?'<br><br><em style="color:var(--txt2)">Said: "'+info.transcription+'"</em>':'');
+  resultEl.classList.add('show');
+  document.getElementById('voiceStatus').textContent='Review the form — all extracted info has been filled in!';
+}
+
+// ── OVERRIDE saveLead to auto-geocode ─────────────────────────────────
+var _origSaveLead=saveLead;
+saveLead=function(){
+  var addr=document.getElementById('f_addr').value.trim();
+  // If we already have a pending pin location from map, just save
+  if(pendingLatLng||!addr){_origSaveLead();return;}
+  // Try to geocode the address first
+  var btn=document.querySelector('#leadModal .btn-gold');
+  if(btn){btn.textContent='📍 Locating address…';btn.disabled=true;}
+  geocodeAddress(addr).then(function(coords){
+    if(coords)pendingLatLng=coords;
+    if(btn){btn.innerHTML='✓ Save Prospect';btn.disabled=false;}
+    _origSaveLead();
+  }).catch(function(){
+    if(btn){btn.innerHTML='✓ Save Prospect';btn.disabled=false;}
+    _origSaveLead();
+  });
+};
 </script>
 </body>
 </html>
