@@ -396,13 +396,24 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
 <div class="field"><label>Business Name</label>
   <div class="addr-wrap">
-    <div style="display:flex;gap:7px">
-      <input type="text" id="f_biz" placeholder="Acme Corporation" autocomplete="off" style="flex:1" oninput="bizNameChanged()">
-      <button type="button" onclick="searchBusiness()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:0 13px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;white-space:nowrap;flex-shrink:0">🔍 Search</button>
-    </div>
+    <input type="text" id="f_biz" placeholder="Acme Corporation" autocomplete="off" oninput="bizNameChanged()" onblur="setTimeout(closeBizSuggestions,250)">
     <div class="addr-suggestions" id="bizSuggestions" style="display:none"></div>
   </div>
 </div>
+<div style="display:flex;gap:7px;margin-bottom:11px">
+  <button type="button" onclick="searchBusinessClaude()" style="flex:1;background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:10px 13px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Ask Claude to Find This Business
+  </button>
+  <button type="button" onclick="searchBusinessOSM(document.getElementById('f_biz').value)" style="background:var(--bg);color:var(--txt2);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:10px 12px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;white-space:nowrap">
+    🗺 Map Search
+  </button>
+</div>
+<div class="ai-processing" id="bizSearching" style="margin-bottom:11px">
+  <div class="spinner" style="width:16px;height:16px;border-width:2px"></div>
+  <span>Claude is searching for this business…</span>
+</div>
+<div id="bizClaudeResult" style="display:none;background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px;margin-bottom:11px;font-size:13px;line-height:1.6"></div>
 <div class="field"><label>Address</label>
   <div class="addr-wrap">
     <input type="text" id="f_addr" placeholder="123 Main St, Redding, CA" autocomplete="off" oninput="addrAutocomplete(this.value)" onblur="setTimeout(closeAddrSuggestions,200)">
@@ -1020,11 +1031,19 @@ function loadGoogleKey(){
 // ── BUSINESS NAME SEARCH ──────────────────────────────────────────────
 var bizSearchTimer=null;
 function bizNameChanged(){
-  // Auto-search after user stops typing for 600ms
+  // Close suggestions and clear Claude result when name changes
+  closeBizSuggestions();
+  var resultEl=document.getElementById('bizClaudeResult');
+  if(resultEl)resultEl.style.display='none';
+  // Auto OSM search after user stops typing for 800ms
   clearTimeout(bizSearchTimer);
   var val=document.getElementById('f_biz').value.trim();
-  if(val.length<3){closeBizSuggestions();return;}
-  bizSearchTimer=setTimeout(function(){searchBusiness();},600);
+  if(val.length<4){return;}
+  bizSearchTimer=setTimeout(function(){
+    var gkey=localStorage.getItem('cbs_gkey')||'';
+    if(gkey&&gkey.length>10){searchBusinessGoogle(val,gkey);}
+    else{searchBusinessOSM(val);}
+  },800);
 }
 
 function searchBusiness(){
@@ -1171,6 +1190,7 @@ function escHtml(str){
 }
 
 function selectBizResult(r){
+  closeBizSuggestions();
   // Fill in form fields
   if(r.name)document.getElementById('f_biz').value=r.name;
   if(r.address)document.getElementById('f_addr').value=r.address;
@@ -1207,7 +1227,108 @@ function selectBizResult(r){
 
 function closeBizSuggestions(){
   var box=document.getElementById('bizSuggestions');
-  if(box)box.style.display='none';
+  if(box){box.style.display='none';box.innerHTML='';}
+}
+
+// ── CLAUDE BUSINESS SEARCH ───────────────────────────────────────────
+function searchBusinessClaude(){
+  var name=document.getElementById('f_biz').value.trim();
+  if(!name){alert('Enter a business name first.');return;}
+  var addr=document.getElementById('f_addr').value.trim();
+  var searchQuery=name+(addr?', '+addr:', Redding CA Northern California');
+  var processingEl=document.getElementById('bizSearching');
+  var resultEl=document.getElementById('bizClaudeResult');
+  processingEl.classList.add('show');
+  resultEl.style.display='none';
+  closeBizSuggestions();
+  var prompt='Search for this business and find its details: "'+name.replace(/"/g,'\"')+'". '+
+    (addr?'It may be located near: '+addr+'. ':'It is likely in Northern California (Redding, Chico, Red Bluff, or surrounding area). ')+
+    'Return ONLY a JSON object with these fields (leave empty string if not found): '+
+    '{"name":"exact business name","address":"full street address including city state zip","phone":"phone number with area code","website":"website URL","bizType":"one of: Law Office, Medical / Dental, Accounting / Finance, Real Estate, Insurance, Manufacturing, Retail, Restaurant / Food, Education, Government, Non-Profit, Construction, Auto / Dealership, Other","employees":"estimated number of employees as a number","notes":"1-2 sentence description of the business","found":true}. '+
+    'If the business cannot be found, return {"found":false}. Return ONLY valid JSON.';
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:500,
+      tools:[{type:'web_search_20250305',name:'web_search'}],
+      messages:[{role:'user',content:prompt}]
+    })
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    processingEl.classList.remove('show');
+    var text='';
+    if(data.content&&data.content.length){
+      data.content.forEach(function(block){if(block.type==='text')text+=block.text;});
+    }
+    if(!text){resultEl.innerHTML='<span style="color:var(--txt2)">Could not find this business. Try adding the city name.</span>';resultEl.style.display='block';return;}
+    try{
+      var info=JSON.parse(text.replace(/```json|```/g,'').trim());
+      if(!info.found){
+        resultEl.innerHTML='<span style="color:var(--txt2)">Business not found. Try adding the city (e.g. "Smith Dental Redding CA") or fill in the address manually.</span>';
+        resultEl.style.display='block';
+        return;
+      }
+      // Show result with apply button
+      var html='<div style="font-weight:700;font-size:14px;margin-bottom:6px">✅ Found: '+escHtml(info.name)+'</div>';
+      if(info.address)html+='<div>📍 '+escHtml(info.address)+'</div>';
+      if(info.phone)html+='<div>📞 '+escHtml(info.phone)+'</div>';
+      if(info.website)html+='<div>🌐 '+escHtml(info.website)+'</div>';
+      if(info.bizType)html+='<div>🏢 '+escHtml(info.bizType)+'</div>';
+      if(info.notes)html+='<div style="color:var(--txt2);margin-top:5px;font-style:italic">'+escHtml(info.notes)+'</div>';
+      html+='<button type="button" onclick="applyClaudeBizResult('+JSON.stringify(JSON.stringify(info))+')" style="margin-top:10px;background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:8px 16px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer;width:100%">✓ Fill In This Info</button>';
+      resultEl.innerHTML=html;
+      resultEl.style.display='block';
+    } catch(e){
+      resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse result. Try again or fill in manually.</span>';
+      resultEl.style.display='block';
+    }
+  }).catch(function(err){
+    processingEl.classList.remove('show');
+    resultEl.innerHTML='<span style="color:var(--hot)">Search failed. Check your internet connection.</span>';
+    resultEl.style.display='block';
+  });
+}
+
+function applyClaudeBizResult(jsonStr){
+  try{
+    var info=JSON.parse(jsonStr);
+    if(info.name)document.getElementById('f_biz').value=info.name;
+    if(info.address)document.getElementById('f_addr').value=info.address;
+    if(info.bizType){
+      var sel=document.getElementById('f_biztype');
+      var opts=[].slice.call(sel.options);
+      var match=opts.find(function(o){return o.value===info.bizType;});
+      if(match)sel.value=info.bizType;
+    }
+    if(info.employees)document.getElementById('f_employees').value=info.employees.toString().replace(/[^0-9]/g,'');
+    if(info.phone){
+      var peContainer=document.getElementById('peCont');
+      // Check if phone already exists
+      var existing=[].slice.call(peContainer.querySelectorAll('[data-f="value"]'));
+      var hasPhone=existing.some(function(el){return el.value===info.phone;});
+      if(!hasPhone)addPE({type:'Phone',label:'Office',value:info.phone});
+    }
+    if(info.notes){
+      var notesEl=document.getElementById('f_notes');
+      if(notesEl&&!notesEl.value)notesEl.value=info.notes;
+    }
+    // Auto-geocode the address
+    if(info.address){
+      geocodeAddress(info.address).then(function(coords){
+        if(coords)pendingLatLng=coords;
+      });
+    }
+    // Hide result card
+    document.getElementById('bizClaudeResult').style.display='none';
+    // Show brief confirmation
+    var conf=document.createElement('div');
+    conf.style.cssText='font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px;text-align:center';
+    conf.textContent='✅ Business info applied!';
+    document.getElementById('bizClaudeResult').parentNode.insertBefore(conf,document.getElementById('bizClaudeResult'));
+    setTimeout(function(){if(conf.parentNode)conf.parentNode.removeChild(conf);},3000);
+  } catch(e){console.error('Apply error:',e);}
 }
 
 // Load saved Google key on settings open
