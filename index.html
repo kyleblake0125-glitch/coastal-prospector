@@ -337,13 +337,54 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
           <button class="toggle" id="darkToggle" onclick="toggleDark()"></button>
         </div>
       </div></div>
-      <div class="sec">Google Places API (Optional Upgrade)</div>
+      <div class="sec">API Keys</div>
 <div class="exp-card">
-  <h3>🗺 Upgrade Business Search</h3>
-  <p>Add your Google Places API key to get much better business name search results — including phone numbers, business types, and multiple locations. Free tier covers ~11,700 searches/month.</p>
-  <div class="field"><label>Google Places API Key</label><input type="text" id="googleApiKey" placeholder="AIza…" oninput="saveGoogleKey()" style="font-size:13px"></div>
-  <div style="font-size:12px;color:var(--txt2)">Get a key at console.cloud.google.com → APIs & Services → Credentials. Enable "Places API" and "Maps JavaScript API".</div>
+  <h3>🤖 Anthropic API Key (Required for AI features)</h3>
+  <p>Required for "Ask Claude to Find Business" and AI Voice Notes. Free $5 credit on signup — enough for hundreds of searches. After that, pennies per month.</p>
+  <div class="field"><label>Anthropic API Key</label>
+    <input type="password" id="anthropicApiKey" placeholder="sk-ant-…" oninput="saveAnthropicKey()" style="font-size:13px" autocomplete="off">
+  </div>
+  <div style="font-size:12px;color:var(--txt2);line-height:1.5">Get your key at <strong>console.anthropic.com</strong> → API Keys → Create Key.</div>
+  <div id="anthropicKeyStatus" style="margin-top:8px;font-size:12px;font-weight:600"></div>
 </div>
+
+<div class="sec">Switch Profile</div>
+<div class="card" id="profileSwitcherCard"><div class="card-bd" id="profileSwitcherList"></div></div>
+
+<div class="sec">AI Usage This Month</div>
+<div class="exp-card" id="usageTrackerCard">
+  <h3>📊 Claude API Usage</h3>
+  <p>Tracks how many AI requests have been made this month (business searches + voice notes).</p>
+  <div style="margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+      <span style="font-size:13px;font-weight:600;color:var(--txt)" id="usageCount">0 requests this month</span>
+      <span style="font-size:11px;color:var(--txt2)" id="usageMonth"></span>
+    </div>
+    <div style="background:var(--bord);border-radius:4px;height:10px;overflow:hidden">
+      <div id="usageBar" style="height:100%;border-radius:4px;background:var(--green);transition:width .4s;width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:4px">
+      <span style="font-size:11px;color:var(--txt2)">0</span>
+      <span style="font-size:11px;color:var(--txt2)" id="usageLimitLabel">Limit: 100/month</span>
+    </div>
+  </div>
+  <div class="field2">
+    <div><label>Monthly Limit</label>
+      <select id="usageLimitSel" onchange="saveUsageLimit()" style="background:var(--surf);color:var(--txt)">
+        <option value="50">50 requests</option>
+        <option value="100" selected>100 requests</option>
+        <option value="200">200 requests</option>
+        <option value="500">500 requests</option>
+        <option value="0">No limit</option>
+      </select>
+    </div>
+    <div style="display:flex;align-items:flex-end">
+      <button class="btn btn-out btn-sm" style="width:100%" onclick="resetUsage()">Reset Counter</button>
+    </div>
+  </div>
+  <div id="usageWarning" style="display:none;background:#fdecea;border:1px solid var(--hot);border-radius:var(--rsm);padding:9px 12px;font-size:12px;color:var(--hot);font-weight:600;margin-top:8px"></div>
+</div>
+
 <div class="sec">Install on Phone</div>
       <div class="card"><div class="card-bd">
         <div style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this URL in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div></div>
@@ -390,30 +431,56 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <!-- MODALS -->
 <div class="overlay" id="acctModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">My Account</div><div class="modal-body"><div style="display:flex;align-items:center;gap:13px;padding:8px 0 18px"><div id="acctAv" style="width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;background:var(--navy)"></div><div><div style="font-weight:700;font-size:16px;color:var(--txt)" id="acctName"></div><div style="font-size:12px;color:var(--txt2)" id="acctEmail"></div></div></div><button class="btn btn-danger" style="width:100%" onclick="doSignOut()">Sign Out</button></div></div></div>
 
+<div class="overlay" id="pinModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="pinModalTitle">Switch to Profile</div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">Enter the 4-digit PIN for this profile to switch to it.</div>
+      <div class="field"><label>4-Digit PIN</label>
+        <input type="password" id="pinInput" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px">
+      </div>
+      <div id="pinError" style="color:var(--hot);font-size:12px;font-weight:600;display:none;margin-bottom:8px">Incorrect PIN. Try again.</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-out" style="flex:1" onclick="closeModal('pinModal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:2" onclick="confirmPinSwitch()">Switch Profile</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="setPinModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Set Profile PIN</div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">Set a 4-digit PIN so others can switch to your profile without your login password. Leave blank to allow free switching.</div>
+      <div class="field"><label>New PIN (4 digits, optional)</label>
+        <input type="password" id="newPinInput" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-out" style="flex:1" onclick="closeModal('setPinModal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:2" onclick="savePin()">Save PIN</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="dropModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Drop Pin Here</div><div class="modal-body"><div class="field"><label>Business Name (optional)</label><input type="text" id="dp_biz" placeholder="Fill in later if unknown"></div><div class="field"><label>Coordinates</label><input type="text" id="dp_addr" readonly style="color:var(--txt2)"></div><div class="field"><label>Pin Color</label><div class="pin-color-grid" id="pinColorGrid"></div></div><div class="field"><label>Quick Note</label><input type="text" id="dp_note" placeholder="e.g. Large office, lots of printers"></div></div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="cancelDrop()">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="confirmDrop()">Save &amp; Add Details</button></div></div></div>
 
 <div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
-<div class="field"><label>Business Name</label>
-  <div class="addr-wrap">
-    <input type="text" id="f_biz" placeholder="Acme Corporation" autocomplete="off" oninput="bizNameChanged()" onblur="setTimeout(closeBizSuggestions,250)">
-    <div class="addr-suggestions" id="bizSuggestions" style="display:none"></div>
+<div class="field2">
+  <div><label>Business Name</label>
+    <div class="addr-wrap">
+      <input type="text" id="f_biz" placeholder="Smith Dental" autocomplete="off" oninput="bizNameChanged()" onblur="setTimeout(closeBizSuggestions,250)">
+      <div class="addr-suggestions" id="bizSuggestions" style="display:none"></div>
+    </div>
+  </div>
+  <div><label>City</label>
+    <input type="text" id="f_city" placeholder="Redding" autocomplete="off">
   </div>
 </div>
-<div style="display:flex;gap:7px;margin-bottom:11px">
-  <button type="button" onclick="searchBusinessClaude()" style="flex:1;background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:10px 13px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    Ask Claude to Find This Business
-  </button>
-  <button type="button" onclick="searchBusinessOSM(document.getElementById('f_biz').value)" style="background:var(--bg);color:var(--txt2);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:10px 12px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer;white-space:nowrap">
-    🗺 Map Search
-  </button>
-</div>
-<div class="ai-processing" id="bizSearching" style="margin-bottom:11px">
-  <div class="spinner" style="width:16px;height:16px;border-width:2px"></div>
-  <span>Claude is searching for this business…</span>
-</div>
-<div id="bizClaudeResult" style="display:none;background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px;margin-bottom:11px;font-size:13px;line-height:1.6"></div>
 <div class="field"><label>Address</label>
   <div class="addr-wrap">
     <input type="text" id="f_addr" placeholder="123 Main St, Redding, CA" autocomplete="off" oninput="addrAutocomplete(this.value)" onblur="setTimeout(closeAddrSuggestions,200)">
@@ -452,22 +519,40 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <div class="field"><label>Leased From</label><input type="text" id="f_leaseco" placeholder="Lease company name"></div>
 <div class="field"><label>Monthly Lease Amount ($)</label><input type="number" id="f_leaseamt" placeholder="0" min="0"></div>
 <div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> AI Voice Note</div>
+<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  Voice Note + AI Auto-Fill
+</div>
 <div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--r);padding:14px;margin-bottom:12px">
-  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.5">🎙 Tap record and speak naturally. Claude will automatically extract contact names, printer info, lease details, lead temperature, and more.</div>
+  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.6">
+    <strong>How to use:</strong><br>
+    1️⃣ Enter the business name + city above<br>
+    2️⃣ Tap Record and speak naturally about the visit<br>
+    3️⃣ Tap <strong>Search &amp; Fill with Claude</strong> — one request fills everything
+  </div>
   <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
     Tap to Record
   </button>
   <div class="voice-status" id="voiceStatus"></div>
+  <div id="voiceReadyBadge" style="display:none;background:#eafaf1;border:1px solid var(--green);border-radius:var(--rsm);padding:8px 12px;font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px">
+    ✅ Voice note recorded — ready to send to Claude
+  </div>
+  <button id="claudeSubmitBtn" onclick="runCombinedClaude()" style="width:100%;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border:none;border-radius:var(--rsm);padding:13px;font-size:14px;font-weight:700;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Search &amp; Fill with Claude <span style="font-size:11px;opacity:.7;margin-left:4px">(1 credit)</span>
+  </button>
   <div class="ai-processing" id="aiProcessing">
     <div class="spinner" style="width:18px;height:18px;border-width:2px"></div>
-    Claude is extracting info from your note…
+    <span id="aiProcessingMsg">Claude is searching and extracting info…</span>
   </div>
   <div class="voice-result" id="voiceResult"></div>
 </div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Visit Notes</div>
-<div class="field"><label>Notes for This Visit</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
+<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  Visit Notes (manual)
+</div>
+<div class="field"><label>Or type notes manually</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
 </div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="saveLead()">✓ Save Prospect</button></div></div></div>
 
 <script type="module">
@@ -586,7 +671,7 @@ function toggleDark(){
 
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-['acctModal','leadModal','dropModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+['acctModal','leadModal','dropModal','pinModal','setPinModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
 
 function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -778,11 +863,15 @@ function openEditLead(id){
   clearForm();populateForm(l);openModal('leadModal');
 }
 function clearForm(){
-  ['f_biz','f_addr','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
+  ['f_biz','f_addr','f_city','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
   document.getElementById('f_status').value='';document.getElementById('f_lease').value='';document.getElementById('f_biztype').value='';
   document.getElementById('f_starred').checked=false;
   document.querySelectorAll('.topt').forEach(function(e){e.classList.remove('sel');});
   ['cCont','nCont','peCont','prCont'].forEach(function(i){document.getElementById(i).innerHTML='';});
+  recordedTranscript='';window._pendingAudioBlob=null;
+  var badge=document.getElementById('voiceReadyBadge');if(badge)badge.style.display='none';
+  var vr=document.getElementById('voiceResult');if(vr)vr.classList.remove('show');
+  var vs=document.getElementById('voiceStatus');if(vs)vs.textContent='';
 }
 function populateForm(l){
   document.getElementById('f_biz').value=l.bizName||'';document.getElementById('f_addr').value=l.address||'';
@@ -1017,16 +1106,36 @@ function exportDay(){
 function dl(content,filename,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));a.download=filename;a.click();}
 
 // ── GOOGLE PLACES KEY ─────────────────────────────────────────────────
-function saveGoogleKey(){
-  var key=document.getElementById('googleApiKey').value.trim();
-  localStorage.setItem('cbs_gkey',key);
+function saveAnthropicKey(){
+  var key=document.getElementById('anthropicApiKey').value.trim();
+  localStorage.setItem('cbs_akey',key);
+  var status=document.getElementById('anthropicKeyStatus');
+  if(status){
+    if(key&&key.startsWith('sk-ant-')){
+      status.textContent='✅ Key saved — AI features are enabled!';
+      status.style.color='var(--green)';
+    } else if(key){
+      status.textContent='⚠️ Key format looks wrong — should start with sk-ant-';
+      status.style.color='var(--warm)';
+    } else {
+      status.textContent='';
+    }
+  }
 }
-function loadGoogleKey(){
-  var key=localStorage.getItem('cbs_gkey')||'';
-  var el=document.getElementById('googleApiKey');
-  if(el)el.value=key;
+function loadAnthropicKey(){
+  var key=localStorage.getItem('cbs_akey')||'';
+  var el=document.getElementById('anthropicApiKey');
+  if(el){
+    el.value=key;
+    var status=document.getElementById('anthropicKeyStatus');
+    if(status&&key&&key.startsWith('sk-ant-')){
+      status.textContent='✅ Key saved — AI features are enabled!';
+      status.style.color='var(--green)';
+    }
+  }
   return key;
 }
+
 
 // ── BUSINESS NAME SEARCH ──────────────────────────────────────────────
 var bizSearchTimer=null;
@@ -1040,65 +1149,16 @@ function bizNameChanged(){
   var val=document.getElementById('f_biz').value.trim();
   if(val.length<4){return;}
   bizSearchTimer=setTimeout(function(){
-    var gkey=localStorage.getItem('cbs_gkey')||'';
-    if(gkey&&gkey.length>10){searchBusinessGoogle(val,gkey);}
-    else{searchBusinessOSM(val);}
+    searchBusinessOSM(val);
   },800);
 }
 
 function searchBusiness(){
   var name=document.getElementById('f_biz').value.trim();
   if(!name){alert('Enter a business name to search.');return;}
-  var gkey=localStorage.getItem('cbs_gkey')||'';
-  if(gkey&&gkey.length>10){
-    searchBusinessGoogle(name,gkey);
-  } else {
-    searchBusinessOSM(name);
-  }
+  searchBusinessOSM(name);
 }
 
-// ── GOOGLE PLACES SEARCH (when API key is set) ────────────────────────
-function searchBusinessGoogle(name,apiKey){
-  var box=document.getElementById('bizSuggestions');
-  box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">Searching…</div>';
-  box.style.display='block';
-  // Use Places Text Search
-  var url='https://maps.googleapis.com/maps/api/place/textsearch/json?query='+encodeURIComponent(name)+
-    '&location=40.8,-122.3&radius=80000&key='+apiKey;
-  // Note: Direct CORS call won't work from browser for Places API
-  // Use Places Autocomplete JS API instead via dynamic script
-  loadGooglePlacesScript(apiKey,function(){
-    var service=new google.maps.places.PlacesService(document.createElement('div'));
-    var req={query:name,location:new google.maps.LatLng(40.8,-122.3),radius:80000};
-    service.textSearch(req,function(results,status){
-      if(status==='OK'&&results&&results.length){
-        showBizResults(results.map(function(r){
-          return {
-            name:r.name,
-            address:r.formatted_address,
-            phone:r.formatted_phone_number||'',
-            bizType:r.types&&r.types[0]?r.types[0].replace(/_/g,' '):'',
-            lat:r.geometry&&r.geometry.location?r.geometry.location.lat():null,
-            lng:r.geometry&&r.geometry.location?r.geometry.location.lng():null,
-            placeId:r.place_id
-          };
-        }));
-      } else {
-        // Fallback to OSM if Google fails
-        searchBusinessOSM(name);
-      }
-    });
-  });
-}
-
-var googlePlacesLoaded=false;
-function loadGooglePlacesScript(apiKey,callback){
-  if(googlePlacesLoaded&&window.google&&window.google.maps){callback();return;}
-  var s=document.createElement('script');
-  s.src='https://maps.googleapis.com/maps/api/js?key='+apiKey+'&libraries=places';
-  s.onload=function(){googlePlacesLoaded=true;callback();};
-  document.head.appendChild(s);
-}
 
 // ── OPENSTREETMAP NOMINATIM SEARCH (free fallback) ────────────────────
 function searchBusinessOSM(name){
@@ -1230,113 +1290,373 @@ function closeBizSuggestions(){
   if(box){box.style.display='none';box.innerHTML='';}
 }
 
-// ── CLAUDE BUSINESS SEARCH ───────────────────────────────────────────
-function searchBusinessClaude(){
+// ── COMBINED CLAUDE: Business Search + Voice Note in ONE request ──────
+var recordedTranscript = '';  // stores voice transcript for combined call
+
+function runCombinedClaude(){
   var name=document.getElementById('f_biz').value.trim();
-  if(!name){alert('Enter a business name first.');return;}
-  var addr=document.getElementById('f_addr').value.trim();
-  var searchQuery=name+(addr?', '+addr:', Redding CA Northern California');
-  var processingEl=document.getElementById('bizSearching');
-  var resultEl=document.getElementById('bizClaudeResult');
+  var city=document.getElementById('f_city').value.trim();
+  var manualNotes=document.getElementById('f_notes').value.trim();
+
+  if(!name&&!recordedTranscript&&!manualNotes){
+    alert('Enter a business name or record a voice note first.');return;
+  }
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey){
+    alert('Add your Anthropic API key in Settings first.');return;
+  }
+  if(!checkUsageLimit())return;
+
+  var processingEl=document.getElementById('aiProcessing');
+  var resultEl=document.getElementById('voiceResult');
+  var msgEl=document.getElementById('aiProcessingMsg');
   processingEl.classList.add('show');
-  resultEl.style.display='none';
+  resultEl.classList.remove('show');
   closeBizSuggestions();
-  var prompt='Search for this business and find its details: "'+name.replace(/"/g,'\"')+'". '+
-    (addr?'It may be located near: '+addr+'. ':'It is likely in Northern California (Redding, Chico, Red Bluff, or surrounding area). ')+
-    'Return ONLY a JSON object with these fields (leave empty string if not found): '+
-    '{"name":"exact business name","address":"full street address including city state zip","phone":"phone number with area code","website":"website URL","bizType":"one of: Law Office, Medical / Dental, Accounting / Finance, Real Estate, Insurance, Manufacturing, Retail, Restaurant / Food, Education, Government, Non-Profit, Construction, Auto / Dealership, Other","employees":"estimated number of employees as a number","notes":"1-2 sentence description of the business","found":true}. '+
-    'If the business cannot be found, return {"found":false}. Return ONLY valid JSON.';
+
+  // Build a rich prompt combining both tasks
+  var bizPart=name?('"'+name.replace(/"/g,'\"')+'"'+(city?' in '+city.replace(/"/g,'\"')+', California':' in Northern California, likely Redding/Chico/Red Bluff area')):'(business name not provided)';
+  var voicePart=recordedTranscript?'The sales rep said after the visit: "'+recordedTranscript.replace(/"/g,'\"')+'"':'';
+  var notesPart=manualNotes?'Additional written notes: "'+manualNotes.replace(/"/g,'\"')+'"':'';
+
+  var hasBizSearch=!!name;
+  var hasVoice=!!(recordedTranscript||manualNotes);
+
+  if(msgEl){
+    if(hasBizSearch&&hasVoice)msgEl.textContent='Claude is searching for the business and extracting your notes…';
+    else if(hasBizSearch)msgEl.textContent='Claude is searching for this business…';
+    else msgEl.textContent='Claude is extracting info from your notes…';
+  }
+
+  // If we have a pending audio blob and no transcript, send audio to Claude
+  if(window._pendingAudioBlob&&!recordedTranscript){
+    // Convert blob to base64 and include in messages
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var base64=e.target.result.split(',')[1];
+      runCombinedClaudeWithAudio(name,city,manualNotes,base64,window._pendingAudioMime||'audio/mp4',akey,processingEl,resultEl,msgEl,hasBizSearch);
+    };
+    reader.readAsDataURL(window._pendingAudioBlob);
+    return;
+  }
+
+  var prompt='You are a sales assistant for an MFP (copier/printer) sales rep in Northern California. '+
+    (hasBizSearch?'Search the web for the business '+bizPart+' and find its address, phone, website, and business type. ':'')+
+    (hasVoice?voicePart+' '+notesPart+' Extract all sales-relevant information from what the rep said. ':'')+
+    'Return ONLY a single JSON object with ALL of these fields (use empty string if unknown): '+
+    '{"bizName":"exact business name","address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","bizType":"one of: Law Office|Medical / Dental|Accounting / Finance|Real Estate|Insurance|Manufacturing|Retail|Restaurant / Food|Education|Government|Non-Profit|Construction|Auto / Dealership|Other","employees":"number","temp":"hot|warm|cool|cold (based on interest level described)","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"number","totalPages":"monthly pages","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"monthly dollar amount number","notes":"clean 1-2 sentence visit summary"}. '+
+    'Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
+
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
-      max_tokens:500,
-      tools:[{type:'web_search_20250305',name:'web_search'}],
+      max_tokens:800,
+      tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],
       messages:[{role:'user',content:prompt}]
     })
   }).then(function(r){return r.json();})
   .then(function(data){
     processingEl.classList.remove('show');
+    incrementUsage();
     var text='';
     if(data.content&&data.content.length){
       data.content.forEach(function(block){if(block.type==='text')text+=block.text;});
     }
-    if(!text){resultEl.innerHTML='<span style="color:var(--txt2)">Could not find this business. Try adding the city name.</span>';resultEl.style.display='block';return;}
+    if(!text){
+      resultEl.innerHTML='<span style="color:var(--hot)">Claude could not process this request. Try again.</span>';
+      resultEl.classList.add('show');return;
+    }
     try{
       var info=JSON.parse(text.replace(/```json|```/g,'').trim());
-      if(!info.found){
-        resultEl.innerHTML='<span style="color:var(--txt2)">Business not found. Try adding the city (e.g. "Smith Dental Redding CA") or fill in the address manually.</span>';
-        resultEl.style.display='block';
-        return;
-      }
-      // Show result with apply button
-      var html='<div style="font-weight:700;font-size:14px;margin-bottom:6px">✅ Found: '+escHtml(info.name)+'</div>';
-      if(info.address)html+='<div>📍 '+escHtml(info.address)+'</div>';
-      if(info.phone)html+='<div>📞 '+escHtml(info.phone)+'</div>';
-      if(info.website)html+='<div>🌐 '+escHtml(info.website)+'</div>';
-      if(info.bizType)html+='<div>🏢 '+escHtml(info.bizType)+'</div>';
-      if(info.notes)html+='<div style="color:var(--txt2);margin-top:5px;font-style:italic">'+escHtml(info.notes)+'</div>';
-      html+='<button type="button" onclick="applyClaudeBizResult('+JSON.stringify(JSON.stringify(info))+')" style="margin-top:10px;background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:8px 16px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer;width:100%">✓ Fill In This Info</button>';
-      resultEl.innerHTML=html;
-      resultEl.style.display='block';
+      applyAllClaudeResults(info);
     } catch(e){
-      resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse result. Try again or fill in manually.</span>';
-      resultEl.style.display='block';
+      // If JSON fails just put transcript in notes
+      if(recordedTranscript)document.getElementById('f_notes').value=recordedTranscript;
+      resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse response. Transcript added to notes.</span>';
+      resultEl.classList.add('show');
     }
   }).catch(function(err){
     processingEl.classList.remove('show');
-    resultEl.innerHTML='<span style="color:var(--hot)">Search failed. Check your internet connection.</span>';
-    resultEl.style.display='block';
+    resultEl.innerHTML='<span style="color:var(--hot)">Request failed. Check your internet and API key in Settings.</span>';
+    resultEl.classList.add('show');
   });
 }
 
-function applyClaudeBizResult(jsonStr){
-  try{
-    var info=JSON.parse(jsonStr);
-    if(info.name)document.getElementById('f_biz').value=info.name;
-    if(info.address)document.getElementById('f_addr').value=info.address;
-    if(info.bizType){
-      var sel=document.getElementById('f_biztype');
-      var opts=[].slice.call(sel.options);
-      var match=opts.find(function(o){return o.value===info.bizType;});
-      if(match)sel.value=info.bizType;
-    }
-    if(info.employees)document.getElementById('f_employees').value=info.employees.toString().replace(/[^0-9]/g,'');
-    if(info.phone){
-      var peContainer=document.getElementById('peCont');
-      // Check if phone already exists
-      var existing=[].slice.call(peContainer.querySelectorAll('[data-f="value"]'));
-      var hasPhone=existing.some(function(el){return el.value===info.phone;});
-      if(!hasPhone)addPE({type:'Phone',label:'Office',value:info.phone});
-    }
-    if(info.notes){
-      var notesEl=document.getElementById('f_notes');
-      if(notesEl&&!notesEl.value)notesEl.value=info.notes;
-    }
-    // Auto-geocode the address
-    if(info.address){
-      geocodeAddress(info.address).then(function(coords){
-        if(coords)pendingLatLng=coords;
-      });
-    }
-    // Hide result card
-    document.getElementById('bizClaudeResult').style.display='none';
-    // Show brief confirmation
-    var conf=document.createElement('div');
-    conf.style.cssText='font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px;text-align:center';
-    conf.textContent='✅ Business info applied!';
-    document.getElementById('bizClaudeResult').parentNode.insertBefore(conf,document.getElementById('bizClaudeResult'));
-    setTimeout(function(){if(conf.parentNode)conf.parentNode.removeChild(conf);},3000);
-  } catch(e){console.error('Apply error:',e);}
+function runCombinedClaudeWithAudio(name,city,manualNotes,base64Audio,mimeType,akey,processingEl,resultEl,msgEl,hasBizSearch){
+  var bizPart=name?('"'+name.replace(/"/g,'\"')+'"'+(city?' in '+city.replace(/"/g,'\"')+', California':' in Northern California')):'(business name not provided)';
+  var notesPart=manualNotes?'Additional written notes: "'+manualNotes.replace(/"/g,'\"')+'"':'';
+  if(msgEl)msgEl.textContent='Claude is processing your voice note and searching for the business…';
+  var prompt='You are a sales assistant for an MFP (copier/printer) sales rep in Northern California. '+
+    (hasBizSearch?'Search the web for the business '+bizPart+' and find its address, phone, website, and business type. ':'')+
+    'The attached audio is a voice note the rep recorded after visiting the prospect. Transcribe it and extract all sales info. '+
+    notesPart+' '+
+    'Return ONLY a single JSON object: {"bizName":"","address":"","phone":"","website":"","bizType":"Law Office|Medical / Dental|Accounting / Finance|Real Estate|Insurance|Manufacturing|Retail|Restaurant / Food|Education|Government|Non-Profit|Construction|Auto / Dealership|Other","employees":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
+  var messages=[{role:'user',content:[
+    {type:'text',text:prompt},
+    {type:'document',source:{type:'base64',media_type:mimeType,data:base64Audio}}
+  ]}];
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:messages})
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    processingEl.classList.remove('show');
+    incrementUsage();
+    var text='';
+    if(data.content&&data.content.length)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    if(!text){resultEl.innerHTML='<span style="color:var(--hot)">Could not process. Try again.</span>';resultEl.classList.add('show');return;}
+    try{applyAllClaudeResults(JSON.parse(text.replace(/```json|```/g,'').trim()));}
+    catch(e){resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse. Try recording again.</span>';resultEl.classList.add('show');}
+  }).catch(function(){
+    processingEl.classList.remove('show');
+    resultEl.innerHTML='<span style="color:var(--hot)">Failed. Check connection and API key.</span>';
+    resultEl.classList.add('show');
+  });
+}
+
+function applyAllClaudeResults(info){
+  var extracted=[];
+  // Business info
+  if(info.bizName){document.getElementById('f_biz').value=info.bizName;extracted.push('Business: '+info.bizName);}
+  if(info.address){document.getElementById('f_addr').value=info.address;extracted.push('Address found');}
+  if(info.bizType){
+    var sel=document.getElementById('f_biztype');
+    var opts=[].slice.call(sel.options);
+    var match=opts.find(function(o){return o.value===info.bizType;});
+    if(match){sel.value=info.bizType;extracted.push('Type: '+info.bizType);}
+  }
+  if(info.employees)document.getElementById('f_employees').value=String(info.employees).replace(/[^0-9]/g,'');
+  // Lead quality
+  if(info.temp){selTemp(info.temp);extracted.push('Temp: '+info.temp);}
+  if(info.status){document.getElementById('f_status').value=info.status;}
+  if(info.followupDate){document.getElementById('f_fudate').value=info.followupDate;extracted.push('Follow-up: '+info.followupDate);}
+  // Printers
+  if(info.printerCount){document.getElementById('f_pcount').value=info.printerCount;extracted.push('Printers: '+info.printerCount);}
+  if(info.totalPages){document.getElementById('f_tpages').value=info.totalPages;extracted.push('Pages/mo: '+info.totalPages);}
+  if(info.printers&&info.printers.length)(info.printers).forEach(function(p){if(p.brand||p.model)addPrinter(p);});
+  // Lease
+  if(info.hasLease){document.getElementById('f_lease').value=info.hasLease;if(info.hasLease==='yes')extracted.push('Has lease ✓');}
+  if(info.leaseend)document.getElementById('f_leaseend').value=info.leaseend;
+  if(info.leaseco){document.getElementById('f_leaseco').value=info.leaseco;extracted.push('Lease: '+info.leaseco);}
+  if(info.leaseamt)document.getElementById('f_leaseamt').value=String(info.leaseamt).replace(/[^0-9.]/g,'');
+  // Notes
+  if(info.notes)document.getElementById('f_notes').value=info.notes;
+  // Contacts spoken to
+  if(info.contacts&&info.contacts.length){
+    document.getElementById('cCont').innerHTML='';
+    info.contacts.forEach(function(c){if(c.name){addContact(c);extracted.push('Contact: '+c.name);}});
+  }
+  // Need to speak to
+  if(info.needContacts&&info.needContacts.length){
+    info.needContacts.forEach(function(c){if(c.name)addNeedContact(c);});
+  }
+  // Phone/email — merge with existing
+  if(info.phoneEmails&&info.phoneEmails.length){
+    document.getElementById('peCont').innerHTML='';
+    info.phoneEmails.forEach(function(p){if(p.value)addPE(p);});
+    var hasContact=info.phoneEmails.some(function(p){return p.value;});
+    if(hasContact)extracted.push('Phone/email added');
+  }
+  // Also check for standalone phone from biz search
+  if(info.phone&&info.phone.trim()){
+    var peContainer=document.getElementById('peCont');
+    var existing=[].slice.call(peContainer.querySelectorAll('[data-f="value"]'));
+    var hasPhone=existing.some(function(el){return el.value===info.phone;});
+    if(!hasPhone){addPE({type:'Phone',label:'Office',value:info.phone});extracted.push('Phone: '+info.phone);}
+  }
+  // Auto-geocode address for map pin
+  if(info.address){
+    geocodeAddress(info.address).then(function(coords){if(coords)pendingLatLng=coords;});
+  }
+  // Clear voice data
+  recordedTranscript='';
+  document.getElementById('voiceReadyBadge').style.display='none';
+  // Show summary
+  var resultEl=document.getElementById('voiceResult');
+  resultEl.innerHTML='<strong>✅ Claude filled in '+(extracted.length)+' fields:</strong><br>'+extracted.join(' · ');
+  resultEl.classList.add('show');
 }
 
 // Load saved Google key on settings open
 var _origShowScreen=showScreen;
 showScreen=function(name){
   _origShowScreen(name);
-  if(name==='settings')loadGoogleKey();
+  if(name==='settings'){loadAnthropicKey();renderProfileSwitcher();renderUsageTracker();}
 };
+
+// ══ PROFILE SWITCHER ══════════════════════════════════════════════════
+var pendingSwitchUserId=null;
+
+function renderProfileSwitcher(){
+  var users=window._users||[];
+  var container=document.getElementById('profileSwitcherList');
+  if(!container)return;
+  if(!users.length){container.innerHTML='<div style="font-size:13px;color:var(--txt2)">No other profiles found.</div>';return;}
+  container.innerHTML=users.map(function(u){
+    var isMe=u.id===myId();
+    var hasPin=!!localStorage.getItem('cbs_pin_'+u.id);
+    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bord)">' +
+      '<div style="width:38px;height:38px;border-radius:50%;background:'+u.color+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+ini(u.name)+'</div>' +
+      '<div style="flex:1"><div style="font-weight:700;font-size:14px">'+u.name+'</div>' +
+      '<div style="font-size:11px;color:var(--txt2)">'+(isMe?'Current profile':((window._leads||[]).filter(function(l){return l.userId===u.id;}).length)+' prospects')+'</div></div>' +
+      (isMe
+        ? '<button onclick="openModal(\'setPinModal\')" style="background:var(--bg);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:6px 11px;font-size:11px;font-weight:600;font-family:var(--ff);cursor:pointer;color:var(--txt2)">'+(hasPin?'Change PIN':'Set PIN')+'</button>'
+        : '<button onclick="startProfileSwitch(this.dataset.uid,this.dataset.name)" data-uid="'+u.id+'" data-name="'+u.name.replace(/"/g,'&quot;')+'" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:6px 14px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer">Switch →</button>'
+      ) +
+      '</div>';
+  }).join('');
+}
+
+function startProfileSwitch(elOrId,nameArg){
+  var userId,userName;
+  if(typeof elOrId==='object'&&elOrId.dataset){
+    userId=elOrId.dataset.uid;userName=elOrId.dataset.name;
+  } else {
+    userId=elOrId;userName=nameArg||'Profile';
+  }
+  var pin=localStorage.getItem('cbs_pin_'+userId);
+  if(pin){
+    // Require PIN
+    pendingSwitchUserId=userId;
+    document.getElementById('pinModalTitle').textContent='Switch to '+userName;
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinError').style.display='none';
+    openModal('pinModal');
+  } else {
+    // No PIN set — switch directly
+    doProfileSwitch(userId);
+  }
+}
+
+function confirmPinSwitch(){
+  var entered=document.getElementById('pinInput').value.trim();
+  var correct=localStorage.getItem('cbs_pin_'+pendingSwitchUserId);
+  if(entered===correct){
+    closeModal('pinModal');
+    doProfileSwitch(pendingSwitchUserId);
+    pendingSwitchUserId=null;
+  } else {
+    document.getElementById('pinError').style.display='block';
+    document.getElementById('pinInput').value='';
+    document.getElementById('pinInput').focus();
+  }
+}
+
+function doProfileSwitch(userId){
+  // We don't sign in/out of Firebase — we just change which userId we're acting as
+  // The Firebase auth stays as the original user
+  // We store the "acting as" user separately
+  localStorage.setItem('cbs_acting_as',userId);
+  window._actingAs=userId;
+  updateHdrUser();
+  renderDashboard();
+  renderLeads();
+  renderProfileSwitcher();
+  // Show toast
+  var u=(window._users||[]).find(function(u){return u.id===userId;});
+  showToast('Switched to '+((u&&u.name)||'profile'));
+}
+
+function savePin(){
+  var pin=document.getElementById('newPinInput').value.trim();
+  var uid=myId();
+  if(pin&&pin.length!==4){alert('PIN must be exactly 4 digits.');return;}
+  if(pin&&!/^[0-9]{4}$/.test(pin)){alert('PIN must be 4 numbers only.');return;}
+  if(pin){localStorage.setItem('cbs_pin_'+uid,pin);}
+  else{localStorage.removeItem('cbs_pin_'+uid);}
+  closeModal('setPinModal');
+  renderProfileSwitcher();
+  showToast(pin?'PIN saved!':'PIN removed');
+}
+
+function showToast(msg){
+  var t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--navyd);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none';
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},2500);
+}
+
+// Override myId to use acting-as user when set
+var _origMyId=myId;
+myId=function(){
+  var acting=window._actingAs||localStorage.getItem('cbs_acting_as');
+  if(acting&&(window._users||[]).find(function(u){return u.id===acting;}))return acting;
+  return window._fbUser&&window._fbUser.uid;
+};
+
+// ══ USAGE TRACKER ═════════════════════════════════════════════════════
+function getUsageKey(){
+  var d=new Date();
+  return 'cbs_usage_'+d.getFullYear()+'_'+(d.getMonth()+1);
+}
+function getUsageCount(){
+  return parseInt(localStorage.getItem(getUsageKey())||'0');
+}
+function incrementUsage(){
+  var key=getUsageKey();
+  var count=parseInt(localStorage.getItem(key)||'0')+1;
+  localStorage.setItem(key,count.toString());
+  return count;
+}
+function getUsageLimit(){
+  return parseInt(localStorage.getItem('cbs_usage_limit')||'100');
+}
+function saveUsageLimit(){
+  var val=document.getElementById('usageLimitSel').value;
+  localStorage.setItem('cbs_usage_limit',val);
+  renderUsageTracker();
+}
+function resetUsage(){
+  if(!confirm('Reset the usage counter for this month?'))return;
+  localStorage.setItem(getUsageKey(),'0');
+  renderUsageTracker();
+}
+function checkUsageLimit(){
+  var limit=getUsageLimit();
+  if(limit===0)return true; // no limit
+  var count=getUsageCount();
+  if(count>=limit){
+    alert('⚠️ Monthly AI request limit reached ('+limit+' requests). Reset the counter in Settings, or increase your limit.');
+    return false;
+  }
+  return true;
+}
+function renderUsageTracker(){
+  var count=getUsageCount();
+  var limit=getUsageLimit();
+  var countEl=document.getElementById('usageCount');
+  var barEl=document.getElementById('usageBar');
+  var limitEl=document.getElementById('usageLimitLabel');
+  var warnEl=document.getElementById('usageWarning');
+  var selEl=document.getElementById('usageLimitSel');
+  var monthEl=document.getElementById('usageMonth');
+  if(!countEl)return;
+  var d=new Date();
+  if(monthEl)monthEl.textContent=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  countEl.textContent=count+' request'+(count!==1?'s':'')+' this month';
+  if(selEl)selEl.value=String(limit);
+  if(limit>0){
+    var pct=Math.min(count/limit*100,100);
+    if(barEl){
+      barEl.style.width=pct+'%';
+      barEl.style.background=pct>=90?'var(--hot)':pct>=70?'var(--warm)':'var(--green)';
+    }
+    if(limitEl)limitEl.textContent='Limit: '+limit+'/month';
+    if(warnEl){
+      if(pct>=100){warnEl.textContent='🛑 Limit reached — AI features disabled until you reset or increase the limit.';warnEl.style.display='block';}
+      else if(pct>=80){warnEl.textContent='⚠️ '+(limit-count)+' requests remaining this month.';warnEl.style.display='block';}
+      else{warnEl.style.display='none';}
+    }
+  } else {
+    if(barEl)barEl.style.width='0%';
+    if(limitEl)limitEl.textContent='No limit set';
+    if(warnEl)warnEl.style.display='none';
+  }
+}
 
 // ── ADDRESS AUTOCOMPLETE (Nominatim, NorCal bounded) ─────────────────
 var addrTimer=null;
@@ -1392,22 +1712,52 @@ function startRecording(){
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
     alert('Voice recording is not supported on this browser. Please use Safari on iPhone or Chrome on Android.');return;
   }
+  // Reset previous recording state
+  recordedTranscript='';
+  window._pendingAudioBlob=null;
+  var badge=document.getElementById('voiceReadyBadge');
+  if(badge)badge.style.display='none';
+  document.getElementById('voiceResult').classList.remove('show');
+
+  // Start Web Speech recognition for live transcription (free)
+  var liveTranscript='';
+  var recognition=null;
+  if(window.SpeechRecognition||window.webkitSpeechRecognition){
+    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+    recognition=new SR();
+    recognition.continuous=true;recognition.interimResults=true;recognition.lang='en-US';
+    recognition.onresult=function(e){
+      var interim='';
+      for(var i=e.resultIndex;i<e.results.length;i++){
+        if(e.results[i].isFinal)liveTranscript+=e.results[i][0].transcript+' ';
+        else interim+=e.results[i][0].transcript;
+      }
+      document.getElementById('voiceStatus').textContent='🔴 '+liveTranscript+interim;
+    };
+    recognition.onerror=function(){};
+    recognition.start();
+  }
+
   navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
     audioChunks=[];
-    // Use webm if supported (Chrome/Android), fallback to mp4 (Safari/iPhone)
     var mimeType='audio/webm';
     if(!MediaRecorder.isTypeSupported('audio/webm'))mimeType='audio/mp4';
     if(!MediaRecorder.isTypeSupported(mimeType))mimeType='';
     mediaRecorder=new MediaRecorder(stream,mimeType?{mimeType:mimeType}:{});
     mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)audioChunks.push(e.data);};
-    mediaRecorder.onstop=function(){processVoiceNote(mimeType||'audio/mp4');stream.getTracks().forEach(function(t){t.stop();});};
+    mediaRecorder.onstop=function(){
+      if(recognition)try{recognition.stop();}catch(e){}
+      recordedTranscript=liveTranscript.trim();
+      processVoiceNote(mimeType||'audio/mp4');
+      stream.getTracks().forEach(function(t){t.stop();});
+    };
     mediaRecorder.start();
     isRecording=true;
     document.getElementById('voiceBtn').classList.add('recording');
-    document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Tap to Stop';
+    document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Tap to Stop Recording';
     document.getElementById('voiceStatus').textContent='🔴 Recording… speak naturally about this prospect';
-    document.getElementById('voiceResult').classList.remove('show');
   }).catch(function(err){
+    if(recognition)try{recognition.stop();}catch(e){}
     alert('Could not access microphone. Please allow microphone access and try again. Error: '+err.message);
   });
 }
@@ -1416,22 +1766,53 @@ function stopRecording(){
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}
   isRecording=false;
   document.getElementById('voiceBtn').classList.remove('recording');
-  document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Tap to Record';
-  document.getElementById('voiceStatus').textContent='Processing…';
+  document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg> Tap to Record Again';
+  document.getElementById('voiceStatus').textContent='Transcribing…';
 }
 
 function processVoiceNote(mimeType){
   if(!audioChunks.length){document.getElementById('voiceStatus').textContent='No audio recorded. Try again.';return;}
   var blob=new Blob(audioChunks,{type:mimeType||'audio/mp4'});
-  // Convert to base64 and send to Claude for transcription + extraction
-  var reader=new FileReader();
-  reader.onload=function(e){
-    var base64=e.target.result.split(',')[1];
-    document.getElementById('aiProcessing').classList.add('show');
-    document.getElementById('voiceStatus').textContent='';
-    extractInfoFromAudio(base64,mimeType||'audio/mp4');
-  };
-  reader.readAsDataURL(blob);
+  // Use Web Speech API to transcribe locally — no credit used yet
+  // Audio will be combined with business search in one Claude call
+  if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){
+    transcribeLocally(blob,mimeType);
+  } else {
+    // Store blob for later; will send to Claude in combined call
+    window._pendingAudioBlob=blob;
+    window._pendingAudioMime=mimeType||'audio/mp4';
+    recordedTranscript='[voice note recorded — will be processed with Claude]';
+    showVoiceReady('Voice note stored. Tap Search & Fill with Claude when ready.');
+  }
+}
+
+function transcribeLocally(blob,mimeType){
+  // Try Web Speech API for free local transcription
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){
+    window._pendingAudioBlob=blob;
+    window._pendingAudioMime=mimeType;
+    recordedTranscript='[audio recorded]';
+    showVoiceReady('Voice note ready. Tap Search & Fill with Claude.');
+    return;
+  }
+  // Play audio to microphone isn't possible directly
+  // Use the audio blob with FileReader and store transcript placeholder
+  // On iOS Safari, we get the transcript via the recognition during recording
+  // Since we already stopped, store what we have and signal ready
+  window._pendingAudioBlob=blob;
+  window._pendingAudioMime=mimeType;
+  if(!recordedTranscript)recordedTranscript='[voice note recorded]';
+  showVoiceReady('Voice note ready! Tap Search & Fill with Claude.');
+}
+
+function showVoiceReady(msg){
+  document.getElementById('voiceStatus').textContent='';
+  var badge=document.getElementById('voiceReadyBadge');
+  if(badge){
+    badge.textContent='🎙 '+msg;
+    badge.style.display='block';
+  }
 }
 
 function extractInfoFromAudio(base64Audio,mimeType){
@@ -1439,9 +1820,16 @@ function extractInfoFromAudio(base64Audio,mimeType){
   // Claude will transcribe and extract structured info
   var prompt='You are a sales assistant for an MFP (copier/printer) sales rep. A rep just recorded a voice note after visiting a business prospect. Extract info into this JSON: {"transcription":"full transcription","bizName":"","address":"","bizType":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Only include fields actually mentioned. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
 
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey){
+    document.getElementById('aiProcessing').classList.remove('show');
+    document.getElementById('voiceStatus').textContent='⚠️ Add your Anthropic API key in Settings to use AI voice notes.';
+    return;
+  }
+  if(!checkUsageLimit()){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='Monthly limit reached. See Settings to adjust.';return;}
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
       max_tokens:1000,
@@ -1504,13 +1892,17 @@ function extractInfoFromText(transcript){
   document.getElementById('aiProcessing').classList.add('show');
   var prompt='You are a sales assistant for an MFP copier/printer sales rep. The rep said: "'+transcript.replace(/'/g,"\'").replace(/\n/g,' ')+'". Extract info into this JSON: {"transcription":"","bizName":"","address":"","bizType":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
 
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='⚠️ Add your Anthropic API key in Settings to use AI voice notes.';return;}
+  if(!checkUsageLimit()){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='Monthly limit reached. See Settings to adjust.';return;}
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
     body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
   }).then(function(r){return r.json();})
   .then(function(data){
     document.getElementById('aiProcessing').classList.remove('show');
+    incrementUsage();
     var text='';
     if(data.content&&data.content.length)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
     try{
