@@ -170,6 +170,28 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .toggle.on{background:var(--green)}
 .toggle::after{content:'';position:absolute;width:18px;height:18px;background:#fff;border-radius:50%;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
 .toggle.on::after{left:23px}
+/* CALENDAR */
+.cal-wrap{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);margin-bottom:13px;overflow:hidden}
+.cal-header{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--bord)}
+.cal-title{font-family:var(--fd);font-size:16px;font-weight:700;color:var(--txt)}
+.cal-nav{background:none;border:1.5px solid var(--bord);border-radius:var(--rsm);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--txt2)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:8px 8px 12px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:var(--txth);text-transform:uppercase;padding:4px 0;letter-spacing:.5px}
+.cal-day{text-align:center;padding:5px 2px;cursor:pointer;border-radius:var(--rsm);position:relative;min-height:36px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px}
+.cal-day:active{background:var(--bg)}
+.cal-day.other-month{opacity:.25;pointer-events:none}
+.cal-day.today-cell{background:var(--goldp)}
+.cal-day.today-cell .cal-dn{color:var(--navy);font-weight:700}
+.cal-day.selected-cell{background:var(--navy)}
+.cal-day.selected-cell .cal-dn{color:#fff;font-weight:700}
+.cal-dn{font-size:13px;color:var(--txt);line-height:1}
+.cal-dot-row{display:flex;gap:2px;justify-content:center;flex-wrap:wrap;max-width:28px}
+.cal-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.cal-detail{border-top:1px solid var(--bord);padding:13px 15px}
+.cal-detail-date{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--txt2);margin-bottom:10px}
+.future-appt{background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:10px 13px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.future-appt-time{font-size:12px;font-weight:700;color:var(--navy);flex-shrink:0}
+.future-appt-biz{font-size:13px;font-weight:600;color:var(--txt)}
 /* ADDRESS AUTOCOMPLETE */
 .addr-wrap{position:relative}
 .addr-suggestions{position:absolute;top:100%;left:0;right:0;background:var(--surf);border:1.5px solid var(--navy);border-top:none;border-radius:0 0 var(--rsm) var(--rsm);z-index:200;max-height:200px;overflow-y:auto;box-shadow:var(--shlg)}
@@ -315,7 +337,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <input type="number" id="manualMiles" placeholder="—" min="0" step="0.1" oninput="renderToday()" style="width:70px;padding:6px 8px;font-size:13px;text-align:center">
     </div>
   </div>
-  <div id="todayContent" style="padding:14px"></div>
+  <div style="padding:14px">
+    <div class="cal-wrap" id="calWrap">
+      <div class="cal-header">
+        <button class="cal-nav" onclick="calPrev()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <div class="cal-title" id="calTitle"></div>
+        <button class="cal-nav" onclick="calNext()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-detail" id="calDetail" style="display:none"></div>
+    </div>
+    <div id="todayContent"></div>
+  </div>
   <div style="height:70px"></div>
 </div>
 
@@ -464,6 +501,27 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <!-- MODALS -->
 <div class="overlay" id="acctModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">My Account</div><div class="modal-body"><div style="display:flex;align-items:center;gap:13px;padding:8px 0 18px"><div id="acctAv" style="width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;background:var(--navy)"></div><div><div style="font-weight:700;font-size:16px;color:var(--txt)" id="acctName"></div><div style="font-size:12px;color:var(--txt2)" id="acctEmail"></div></div></div><button class="btn btn-danger" style="width:100%" onclick="doSignOut()">Sign Out</button></div></div></div>
 
+<div class="overlay" id="apptModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="apptModalTitle">Schedule Appointment</div>
+    <div class="modal-body">
+      <div class="field"><label>Business</label>
+        <select id="appt_lead" style="background:var(--surf);color:var(--txt)"></select>
+      </div>
+      <div class="field2">
+        <div><label>Date</label><input type="date" id="appt_date"></div>
+        <div><label>Time</label><input type="time" id="appt_time"></div>
+      </div>
+      <div class="field"><label>Notes</label><input type="text" id="appt_note" placeholder="e.g. Meet with Janet re: lease renewal"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-out" style="flex:1" onclick="closeModal('apptModal')">Cancel</button>
+      <button class="btn btn-gold" style="flex:2" onclick="saveAppointment()">Save Appointment</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="pinModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -502,6 +560,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 <div class="overlay" id="dropModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Drop Pin Here</div><div class="modal-body"><div class="field"><label>Business Name (optional)</label><input type="text" id="dp_biz" placeholder="Fill in later if unknown"></div><div class="field"><label>Coordinates</label><input type="text" id="dp_addr" readonly style="color:var(--txt2)"></div><div class="field"><label>Pin Color</label><div class="pin-color-grid" id="pinColorGrid"></div></div><div class="field"><label>Quick Note</label><input type="text" id="dp_note" placeholder="e.g. Large office, lots of printers"></div></div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="cancelDrop()">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="confirmDrop()">Save &amp; Add Details</button></div></div></div>
 
 <div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
+<div id="editFormInfo" style="display:none"></div>
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
 <div class="field2">
   <div><label>Business Name</label>
@@ -711,7 +770,7 @@ function toggleDark(){
 
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-['acctModal','leadModal','dropModal','pinModal','setPinModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+['acctModal','leadModal','dropModal','pinModal','setPinModal','apptModal'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
 
 function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -947,9 +1006,11 @@ function clearForm(){
   var badge=document.getElementById('voiceReadyBadge');if(badge)badge.style.display='none';
   var vr=document.getElementById('voiceResult');if(vr)vr.classList.remove('show');
   var vs=document.getElementById('voiceStatus');if(vs)vs.textContent='';
+  var ei=document.getElementById('editFormInfo');if(ei)ei.style.display='none';
 }
 function populateForm(l){
   document.getElementById('f_biz').value=l.bizName||'';document.getElementById('f_addr').value=l.address||'';
+  document.getElementById('f_city').value='';
   document.getElementById('f_biztype').value=l.bizType||'';document.getElementById('f_employees').value=l.employees||'';
   document.getElementById('f_status').value=l.status||'';document.getElementById('f_fudate').value=l.followupDate||'';
   document.getElementById('f_starred').checked=!!l.starred;
@@ -962,6 +1023,21 @@ function populateForm(l){
   (l.needContacts||[]).forEach(function(c){addNeedContact(c);});
   (l.phoneEmails||[]).forEach(function(p){addPE(p);});if(!l.phoneEmails||!l.phoneEmails.length)addPE();
   (l.printers||[]).forEach(function(p){addPrinter(p);});
+  // Show created timestamp and past notes in edit form
+  var editInfo=document.getElementById('editFormInfo');
+  if(editInfo){
+    var createdStr=l.createdAt?fdt(l.createdAt):'Unknown';
+    var visits=l.visits&&l.visits.length?[...l.visits].sort(function(a,b){return new Date(b.date)-new Date(a.date);}):[];
+    var notesHtml=visits.length
+      ?visits.map(function(v){return '<div style="border-left:3px solid var(--gold);padding:6px 10px;margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">'+fdt(v.date)+'</div><div style="font-size:12px;color:var(--txt);line-height:1.5">'+(v.notes||'<em style="color:var(--txth)">No notes</em>')+'</div></div>';}).join('')
+      :'<div style="font-size:12px;color:var(--txth)">No visit notes yet</div>';
+    editInfo.innerHTML='<div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:14px">'+
+      '<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Originally Created</div>'+
+      '<div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:12px">'+createdStr+'</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Past Visit Notes (newest first)</div>'+
+      notesHtml+'</div>';
+    editInfo.style.display='block';
+  }
 }
 function selTemp(v){cTemp=v;document.querySelectorAll('.topt').forEach(function(e){e.classList.remove('sel');});document.querySelector('.topt[data-v="'+v+'"]')&&document.querySelector('.topt[data-v="'+v+'"]').classList.add('sel');}
 
@@ -2600,6 +2676,254 @@ function applyBatchResult(id,infoOrJson){
     showToast('Updated '+((l&&l.bizName)||'prospect'));
     showToast('Updated '+((l&&l.bizName)||'prospect'));
   }catch(e){console.error(e);}
+}
+
+// ══ CALENDAR ══════════════════════════════════════════════════════════
+var calYear=new Date().getFullYear();
+var calMonth=new Date().getMonth(); // 0-based
+var calSelected=null; // 'YYYY-MM-DD'
+
+function showScreen_orig_today(name){} // placeholder
+
+// Call renderCalendar when Today tab opens
+var _origShowScreenCal=showScreen;
+showScreen=function(name){
+  _origShowScreenCal(name);
+  if(name==='today')setTimeout(renderCalendar,50);
+};
+
+function calPrev(){
+  calMonth--;
+  if(calMonth<0){calMonth=11;calYear--;}
+  calSelected=null;
+  renderCalendar();
+}
+function calNext(){
+  calMonth++;
+  if(calMonth>11){calMonth=0;calYear++;}
+  calSelected=null;
+  renderCalendar();
+}
+
+function renderCalendar(){
+  var titleEl=document.getElementById('calTitle');
+  var gridEl=document.getElementById('calGrid');
+  var detailEl=document.getElementById('calDetail');
+  if(!titleEl||!gridEl)return;
+
+  var monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  titleEl.textContent=monthNames[calMonth]+' '+calYear;
+
+  // Build visit map: 'YYYY-MM-DD' -> [{lead, visit}]
+  var mine=(window._leads||[]).filter(function(l){return l.userId===myId();});
+  var visitMap={};
+  mine.forEach(function(l){
+    (l.visits||[]).forEach(function(v){
+      var d=v.date.split('T')[0];
+      if(!visitMap[d])visitMap[d]=[];
+      visitMap[d].push({lead:l,visit:v});
+    });
+  });
+
+  // Build appointment map: 'YYYY-MM-DD' -> [appt]
+  var apptMap={};
+  (window._leads||[]).forEach(function(l){
+    (l.appointments||[]).forEach(function(a){
+      if(!apptMap[a.date])apptMap[a.date]=[];
+      apptMap[a.date].push({lead:l,appt:a});
+    });
+  });
+
+  // Day of week headers
+  var dows=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  var gridHTML=dows.map(function(d){return '<div class="cal-dow">'+d+'</div>';}).join('');
+
+  // First day of month
+  var firstDay=new Date(calYear,calMonth,1).getDay();
+  var daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  var todayStr=today();
+
+  // Pad start
+  for(var p=0;p<firstDay;p++){
+    gridHTML+='<div class="cal-day other-month"></div>';
+  }
+
+  for(var d=1;d<=daysInMonth;d++){
+    var ds=calYear+'-'+String(calMonth+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var visits=visitMap[ds]||[];
+    var appts=apptMap[ds]||[];
+    var isToday=ds===todayStr;
+    var isSelected=ds===calSelected;
+    var isFuture=ds>todayStr;
+    var cls='cal-day'+(isToday?' today-cell':'')+(isSelected?' selected-cell':'');
+
+    // Dots for visits (color by temp) and appointments (gold)
+    var dots='';
+    var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+    visits.slice(0,4).forEach(function(item){
+      var col=cm[item.lead.temp]||'#7f8c8d';
+      dots+='<div class="cal-dot" style="background:'+col+'"></div>';
+    });
+    appts.slice(0,2).forEach(function(){
+      dots+='<div class="cal-dot" style="background:var(--gold)"></div>';
+    });
+
+    gridHTML+='<div class="'+cls+'" data-ds="'+ds+'" onclick="calSelectDay(this.dataset.ds)">'
+      +'<div class="cal-dn">'+d+'</div>'
+      +(dots?'<div class="cal-dot-row">'+dots+'</div>':'')
+      +'</div>';
+  }
+
+  gridEl.innerHTML=gridHTML;
+
+  // Show detail for selected day
+  if(calSelected){
+    renderCalDetail(calSelected,visitMap[calSelected]||[],apptMap[calSelected]||[]);
+  } else {
+    detailEl.style.display='none';
+  }
+}
+
+function calSelectDay(ds){
+  calSelected=calSelected===ds?null:ds;
+  renderCalendar();
+}
+
+function renderCalDetail(ds,visits,appts){
+  var el=document.getElementById('calDetail');
+  if(!el)return;
+  var d=new Date(ds+'T12:00:00');
+  var label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var html='<div class="cal-detail-date">'+label+'</div>';
+  var isFuture=ds>today();
+
+  // Appointments
+  if(appts.length){
+    html+='<div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Appointments</div>';
+    appts.forEach(function(item){
+      html+='<div class="future-appt">'
+        +'<div class="future-appt-time">'+(item.appt.time||'')+'</div>'
+        +'<div><div class="future-appt-biz">'+escHtml(item.lead.bizName||'Unnamed')+'</div>'
+        +(item.appt.note?'<div style="font-size:11px;color:var(--txt2)">'+escHtml(item.appt.note)+'</div>':'')
+        +'</div>'
+        +'<button data-lid="'+item.lead.id+'" data-aid="'+item.appt.id+'" onclick="deleteAppt(this.dataset.lid,this.dataset.aid)" style="margin-left:auto;background:none;border:none;color:var(--txth);font-size:16px;cursor:pointer;flex-shrink:0">×</button>'
+        +'</div>';
+    });
+  }
+
+  // Visits
+  if(visits.length){
+    html+='<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;margin-top:'+(appts.length?'12px':'0')+'">Visited ('+visits.length+')</div>';
+    visits.sort(function(a,b){return new Date(a.visit.date)-new Date(b.visit.date);});
+    visits.forEach(function(item){
+      var l=item.lead;
+      var v=item.visit;
+      var tc=l.temp||'cold';
+      var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+      var col=cm[tc]||'#7f8c8d';
+      var t=new Date(v.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      html+='<div style="background:var(--bg);border-radius:var(--rsm);padding:10px;margin-bottom:8px;border-left:3px solid '+col+';cursor:pointer" data-lid="'+l.id+'" onclick="showDetail(this.dataset.lid)">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName||'Unnamed')+'</div>'
+        +'<div style="font-size:11px;color:var(--txt2)">'+t+'</div></div>'
+        +(l.address?'<div style="font-size:11px;color:var(--txt2);margin-top:2px">'+escHtml(l.address)+'</div>':'')
+        +(v.notes?'<div style="font-size:12px;color:var(--txt);margin-top:5px;line-height:1.5">'+escHtml(v.notes)+'</div>':'')
+        +'<div style="font-size:10px;color:var(--txth);margin-top:4px">Tap to view full profile →</div>'
+        +'</div>';
+    });
+  }
+
+  if(!visits.length&&!appts.length){
+    if(isFuture){
+      html+='<div style="font-size:13px;color:var(--txt2);text-align:center;padding:10px 0">No appointments scheduled.</div>';
+    } else {
+      html+='<div style="font-size:13px;color:var(--txt2);text-align:center;padding:10px 0">No visits logged this day.</div>';
+    }
+  }
+
+  // Schedule appointment button (works for past and future)
+  html+='<button data-ds="'+ds+'" onclick="openApptModal(this.dataset.ds)" style="margin-top:10px;width:100%;background:var(--goldp);color:var(--navy);border:1px solid var(--gold);border-radius:var(--rsm);padding:9px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer">+ Schedule Appointment on This Day</button>';
+
+  // Export/print day
+  if(visits.length){
+    html+='<button data-ds="'+ds+'" onclick="exportCalDay(this.dataset.ds)" style="margin-top:7px;width:100%;background:var(--bg);color:var(--txt2);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:8px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer">⬇ Export This Day\'s List</button>';
+  }
+
+  el.innerHTML=html;
+  el.style.display='block';
+}
+
+function exportCalDay(ds){
+  var d=new Date(ds+'T12:00:00');
+  var label=d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var mine=(window._leads||[]).filter(function(l){return l.userId===myId();});
+  var visits=[];
+  mine.forEach(function(l){
+    (l.visits||[]).forEach(function(v){
+      if(v.date.startsWith(ds))visits.push({lead:l,visit:v});
+    });
+  });
+  visits.sort(function(a,b){return new Date(a.visit.date)-new Date(b.visit.date);});
+  var u=cu();
+  var lines=['VISIT REPORT',u.name+' - '+label,'='.repeat(50),''];
+  visits.forEach(function(item,i){
+    var t=new Date(item.visit.date).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    lines.push((i+1)+'. '+(item.lead.bizName||'Unnamed')+(item.lead.starred?' STARRED':''));
+    if(item.lead.address)lines.push('   Address: '+item.lead.address);
+    if(item.lead.temp)lines.push('   Temp: '+item.lead.temp.toUpperCase());
+    lines.push('   Time: '+t);
+    if(item.visit.notes)lines.push('   Notes: '+item.visit.notes);
+    lines.push('');
+  });
+  dl(lines.join('\n'),'visit-report-'+ds+'.txt','text/plain');
+}
+
+// ══ APPOINTMENTS ══════════════════════════════════════════════════════
+function openApptModal(dateStr){
+  document.getElementById('appt_date').value=dateStr||today();
+  document.getElementById('appt_time').value='09:00';
+  document.getElementById('appt_note').value='';
+  // Populate lead dropdown
+  var sel=document.getElementById('appt_lead');
+  sel.innerHTML='';
+  var leads=(window._leads||[]).sort(function(a,b){return (a.bizName||'').localeCompare(b.bizName||'');});
+  leads.forEach(function(l){
+    var opt=document.createElement('option');
+    opt.value=l.id;
+    opt.textContent=(l.bizName||'Unnamed')+(l.address?' — '+l.address.split(',')[0]:'');
+    sel.appendChild(opt);
+  });
+  openModal('apptModal');
+}
+
+function saveAppointment(){
+  var leadId=document.getElementById('appt_lead').value;
+  var date=document.getElementById('appt_date').value;
+  var time=document.getElementById('appt_time').value;
+  var note=document.getElementById('appt_note').value.trim();
+  if(!leadId||!date){alert('Select a business and date.');return;}
+  var l=(window._leads||[]).find(function(x){return x.id===leadId;});
+  if(!l)return;
+  var appt={id:Date.now().toString(36),date:date,time:time,note:note,createdAt:now()};
+  var appts=[...(l.appointments||[]),appt];
+  window.fbUpdateLead(leadId,{appointments:appts}).then(function(){
+    closeModal('apptModal');
+    showToast('Appointment saved for '+fds(date));
+    renderCalendar();
+    // Also set followup date on the lead
+    window.fbUpdateLead(leadId,{followupDate:date});
+  });
+}
+
+function deleteAppt(leadId,apptId){
+  if(!confirm('Delete this appointment?'))return;
+  var l=(window._leads||[]).find(function(x){return x.id===leadId;});
+  if(!l)return;
+  var appts=(l.appointments||[]).filter(function(a){return a.id!==apptId;});
+  window.fbUpdateLead(leadId,{appointments:appts}).then(function(){
+    showToast('Appointment deleted');
+    renderCalendar();
+  });
 }
 </script>
 </body>
