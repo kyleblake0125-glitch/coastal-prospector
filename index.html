@@ -359,7 +359,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <div class="sec">API Keys</div>
 <div class="exp-card">
   <h3>🤖 Anthropic API Key (Required for AI features)</h3>
-  <p>Required for "Ask Claude to Find Business" and AI Voice Notes. Free $5 credit on signup — enough for hundreds of searches. After that, pennies per month.</p>
+  <p>Required for AI features. Saves to <strong>all devices automatically</strong> — enter it once and Sean's phone gets it too. Free $5 credit on signup covers hundreds of uses.</p>
   <div class="field"><label>Anthropic API Key</label>
     <input type="password" id="anthropicApiKey" placeholder="sk-ant-…" oninput="saveAnthropicKey()" style="font-size:13px" autocomplete="off">
   </div>
@@ -634,6 +634,9 @@ window.fbSaveLead=async(data,id)=>{sd('syncing');try{if(id){await updateDoc(doc(
 window.fbDeleteLead=async(id)=>{sd('syncing');try{await deleteDoc(doc(db,'leads',id));sd('ok');}catch(e){console.error(e);sd('off');}};
 window.fbSaveUser=async(data)=>{try{await addDoc(collection(db,'users'),data);}catch(e){console.error(e);}};
 window.fbUpdateLead=async(id,data)=>{sd('syncing');try{await updateDoc(doc(db,'leads',id),{...data,updatedAt:new Date().toISOString()});sd('ok');}catch(e){console.error(e);sd('off');}};
+// Shared config — syncs API key across all devices via Firestore
+window.fbSaveSharedKey=async(key)=>{try{await updateDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e){try{const {setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await setDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e2){console.error('Config save failed:',e2);}}};
+window.fbLoadSharedKey=async()=>{try{const {getDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDoc(doc(db,'config','shared'));if(snap.exists()&&snap.data().anthropicKey){const k=snap.data().anthropicKey;if(!localStorage.getItem('cbs_akey')&&k){localStorage.setItem('cbs_akey',k);console.log('API key synced from shared config');}return k;}return null;}catch(e){return null;}};
 </script>
 
 <script>
@@ -662,6 +665,10 @@ window.onAppReady=function(){
   }
   document.getElementById('hdrDate').textContent=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
   updateHdrUser();renderDashboard();checkNotifications();loadDarkPref();
+  // Sync shared API key from Firestore to local storage if not already set
+  if(!localStorage.getItem('cbs_akey')&&window.fbLoadSharedKey){
+    window.fbLoadSharedKey().then(function(k){if(k)console.log('Shared API key synced.');});
+  }
 };
 
 window.refreshAllUI=function(){
@@ -1273,13 +1280,22 @@ function saveAnthropicKey(){
   var status=document.getElementById('anthropicKeyStatus');
   if(status){
     if(key&&key.startsWith('sk-ant-')){
-      status.textContent='✅ Key saved — AI features are enabled!';
-      status.style.color='var(--green)';
+      status.textContent='Saving and syncing to all devices…';
+      status.style.color='var(--txt2)';
+      // Push to Firestore so Sean's phone gets it too
+      window.fbSaveSharedKey&&window.fbSaveSharedKey(key).then(function(){
+        status.textContent='Key saved and synced to all devices!';
+        status.style.color='var(--green)';
+      }).catch(function(){
+        status.textContent='Key saved locally (sync failed — check Firestore rules)';
+        status.style.color='var(--warm)';
+      });
     } else if(key){
-      status.textContent='⚠️ Key format looks wrong — should start with sk-ant-';
+      status.textContent='Key format looks wrong — should start with sk-ant-';
       status.style.color='var(--warm)';
     } else {
-      status.textContent='';
+      status.textContent='Key cleared';
+      status.style.color='var(--txt2)';
     }
   }
 }
@@ -1289,9 +1305,17 @@ function loadAnthropicKey(){
   if(el){
     el.value=key;
     var status=document.getElementById('anthropicKeyStatus');
-    if(status&&key&&key.startsWith('sk-ant-')){
-      status.textContent='✅ Key saved — AI features are enabled!';
-      status.style.color='var(--green)';
+    if(status){
+      if(key&&key.startsWith('sk-ant-')){
+        status.textContent='Key saved — AI features enabled!';
+        status.style.color='var(--green)';
+      } else if(key){
+        status.textContent='Key format looks wrong — should start with sk-ant-';
+        status.style.color='var(--warm)';
+      } else {
+        status.textContent='No key set — AI features disabled';
+        status.style.color='var(--hot)';
+      }
     }
   }
   return key;
@@ -1797,7 +1821,7 @@ function renderUsageTracker(){
   var monthEl=document.getElementById('usageMonth');
   if(!countEl)return;
   var d=new Date();
-  if(monthEl)monthEl.textContent=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  if(monthEl)monthEl.textContent=d.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' (key: '+getUsageKey()+')';
   countEl.textContent=count+' request'+(count!==1?'s':'')+' this month';
   if(selEl)selEl.value=String(limit);
   if(limit>0){
@@ -2446,18 +2470,20 @@ function processClaudeNext(){
     document.getElementById('batchBtn').disabled=false;
     document.getElementById('batchBtn').textContent='Start Batch Lookup';
     document.getElementById('batchStatus').textContent=
-      '✅ All done! '+batchOsmHits+' found free via map, '+
-      batchIndex+' looked up via Claude. Review results below.';
+      'All done! '+batchOsmHits+' found free, '+batchIndex+' looked up via Claude. Review results below.';
     return;
   }
   var l=batchClaudeNeeded[batchIndex];
   batchIndex++;
   var akey=localStorage.getItem('cbs_akey')||'';
-  if(!akey||!checkUsageLimit()){
-    batchRunning=false;
-    document.getElementById('batchBtn').textContent='Start Batch Lookup';
+  if(!akey){
+    showBatchResult(l,null,'No API key set');
+    setTimeout(processClaudeNext,100);
     return;
   }
+  if(!checkUsageLimit()){batchRunning=false;document.getElementById('batchBtn').textContent='Start Batch Lookup';return;}
+  var statusEl=document.getElementById('batchStatus');
+  if(statusEl)statusEl.textContent='Claude looking up '+batchIndex+' of '+batchClaudeNeeded.length+': '+(l.bizName||'business')+'…';
   var needsAddr=!l.address||l.address.trim().length<=5;
   var needsPhone=!(l.phoneEmails||[]).some(function(p){
     return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
@@ -2465,46 +2491,53 @@ function processClaudeNext(){
   var what=[];
   if(needsAddr)what.push('address');
   if(needsPhone)what.push('phone number');
-  var prompt='Find the '+what.join(' and ')+' for this business: "'+
-    l.bizName.replace(/"/g,'\"')+'"'+
-    (l.address?' (located near '+l.address+')':' in Northern California (Redding/Chico/Red Bluff area)')+
-    '. Return ONLY JSON: {"address":"full street address, city, state zip","phone":"(xxx) xxx-xxxx","website":"","found":true}. If not found return {"found":false}.';
+  var prompt='Find the '+what.join(' and ')+' for this business: "'+(l.bizName||'').replace(/"/g,'\"')+'"'+
+    (l.address?' near '+l.address:' in Northern California, likely Redding/Chico/Red Bluff area')+
+    '. Return ONLY this JSON (no other text): {"address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","found":true} or {"found":false} if not found.';
   fetch('https://api.anthropic.com/v1/messages',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
     body:JSON.stringify({
       model:'claude-sonnet-4-20250514',
-      max_tokens:200,
+      max_tokens:300,
       tools:[{type:'web_search_20250305',name:'web_search'}],
       messages:[{role:'user',content:prompt}]
     })
-  }).then(function(r){return r.json();})
+  })
+  .then(function(r){
+    if(!r.ok){return r.json().then(function(e){throw new Error((e.error&&e.error.message)||('HTTP '+r.status));});}
+    return r.json();
+  })
   .then(function(data){
-    incrementUsage();
     var text='';
     if(data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    if(data.error){showBatchResult(l,null,'API: '+data.error.message);setTimeout(processClaudeNext,1200);return;}
+    incrementUsage();
+    var info=null;
     try{
-      var info=JSON.parse(text.replace(/```json|```/g,'').trim());
-      showBatchResult(l,info.found?info:null);
-    }catch(e){showBatchResult(l,null);}
-    document.getElementById('batchStatus').textContent=
-      'Claude lookup: '+batchIndex+' of '+batchClaudeNeeded.length+'…';
+      var clean=text.replace(/```json|```/g,'').trim();
+      var m=clean.match(/\{[\s\S]*?\}/);
+      if(m)info=JSON.parse(m[0]);
+    }catch(e){info=null;}
+    showBatchResult(l,(info&&info.found)?info:null,(!info||!info.found)?'Not found':null);
     setTimeout(processClaudeNext,1200);
-  }).catch(function(){
+  })
+  .catch(function(err){
+    showBatchResult(l,null,'Error: '+(err.message||'Network failure'));
     setTimeout(processClaudeNext,2000);
   });
 }
 
-function showBatchResult(l,info){
+function showBatchResult(l,info,errorMsg){
   var container=document.getElementById('batchResults');
   if(!container)return;
   var div=document.createElement('div');
   div.style.cssText='background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:9px';
   if(!info){
-    // Not found — show grayed out entry so user knows it was checked
-    div.style.opacity='0.5';
+    div.style.opacity='0.6';
+    var msg=errorMsg?('⚠️ '+errorMsg):'❌ Not found online';
     div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName||'Unknown')+'</div>'+
-      '<div style="font-size:12px;color:var(--txth);margin-top:3px">❌ Not found online</div>';
+      '<div style="font-size:12px;color:var(--txth);margin-top:3px">'+escHtml(msg)+'</div>';
     container.appendChild(div);
     return;
   }
