@@ -2496,29 +2496,54 @@ function processClaudeNext(){
 }
 
 function showBatchResult(l,info){
+  var container=document.getElementById('batchResults');
+  if(!container)return;
   var div=document.createElement('div');
   div.style.cssText='background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:9px';
   if(!info){
-    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName)+'</div><div style="font-size:12px;color:var(--txth);margin-top:3px">Not found online</div>';
-  } else {
-    var changes=[];
-    if(info.address&&!l.address)changes.push('Address: '+info.address);
-    if(info.phone)changes.push('Phone: '+info.phone);
-    if(info.website)changes.push('Website: '+info.website);
-    var source=info.osmHit?'🆓 Free map lookup':'🤖 Claude';
-    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName)+'<span style="font-size:10px;color:var(--txt2);margin-left:6px;font-weight:400">'+source+'</span></div>'+
-      '<div style="font-size:12px;color:var(--txt2);margin-top:3px;line-height:1.6">'+changes.map(escHtml).join('<br>')+'</div>';
-    var applyBtn=document.createElement('button');
-    applyBtn.textContent='✓ Apply';
-    applyBtn.style.cssText='margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:5px 13px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer';
-    applyBtn.addEventListener('click',function(){applyBatchResult(l.id,info);applyBtn.closest('div').style.opacity='0.4';});
-    var skipBtn=document.createElement('button');
-    skipBtn.textContent='Skip';
-    skipBtn.style.cssText='margin-top:8px;margin-left:7px;background:none;color:var(--txt2);border:1px solid var(--bord);border-radius:var(--rsm);padding:5px 10px;font-size:12px;font-family:var(--ff);cursor:pointer';
-    skipBtn.addEventListener('click',function(){div.remove();});
-    div.appendChild(applyBtn);div.appendChild(skipBtn);
+    // Not found — show grayed out entry so user knows it was checked
+    div.style.opacity='0.5';
+    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName||'Unknown')+'</div>'+
+      '<div style="font-size:12px;color:var(--txth);margin-top:3px">❌ Not found online</div>';
+    container.appendChild(div);
+    return;
   }
-  document.getElementById('batchResults').appendChild(div);
+  // Build list of what was found — show EVERYTHING Claude returned, not just new stuff
+  var found=[];
+  if(info.address)found.push({label:'📍 Address',val:info.address});
+  if(info.phone)found.push({label:'📞 Phone',val:info.phone});
+  if(info.website)found.push({label:'🌐 Website',val:info.website});
+  if(!found.length){
+    // Claude returned found:true but no useful data
+    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName||'Unknown')+'</div>'+
+      '<div style="font-size:12px;color:var(--txth);margin-top:3px">Found but no new info returned</div>';
+    container.appendChild(div);
+    return;
+  }
+  var source=info.osmHit?'🆓 Free':'🤖 Claude';
+  var sourceColor=info.osmHit?'var(--green)':'var(--cool)';
+  div.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
+    '<div style="font-weight:700;font-size:14px">'+escHtml(l.bizName||'Unknown')+'</div>'+
+    '<span style="font-size:10px;font-weight:700;color:'+sourceColor+'">'+source+'</span></div>'+
+    found.map(function(f){
+      return '<div style="font-size:12px;color:var(--txt2);margin-bottom:2px"><span style="font-weight:600">'+f.label+':</span> '+escHtml(f.val)+'</div>';
+    }).join('');
+  var applyBtn=document.createElement('button');
+  applyBtn.textContent='✓ Apply to Profile';
+  applyBtn.style.cssText='margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:7px 14px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer;width:100%';
+  applyBtn.addEventListener('click',function(){
+    applyBatchResult(l.id,info);
+    div.style.opacity='0.45';
+    applyBtn.textContent='✅ Applied';
+    applyBtn.disabled=true;
+  });
+  var skipBtn=document.createElement('button');
+  skipBtn.textContent='Skip';
+  skipBtn.style.cssText='margin-top:6px;background:none;color:var(--txt2);border:1px solid var(--bord);border-radius:var(--rsm);padding:5px 10px;font-size:11px;font-family:var(--ff);cursor:pointer;width:100%';
+  skipBtn.addEventListener('click',function(){div.remove();});
+  div.appendChild(applyBtn);
+  div.appendChild(skipBtn);
+  container.appendChild(div);
 }
 
 function applyBatchResult(id,infoOrJson){
