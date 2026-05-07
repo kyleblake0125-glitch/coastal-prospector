@@ -213,7 +213,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   <div class="hdr">
     <div class="hdr-row">
       <div>
-        <div class="brand">Coastal <em>Prospector</em> <span class="sync-dot" id="syncDot"></span></div>
+        <div class="brand">Coastal <em>Prospector</em> <span class="sync-dot" id="syncDot"></span><span id="offlineBadge" style="display:none;font-size:9px;font-weight:700;background:var(--hot);color:#fff;padding:2px 6px;border-radius:10px;margin-left:6px;vertical-align:middle;letter-spacing:.3px">OFFLINE</span></div>
         <div class="hdr-date" id="hdrDate"></div>
       </div>
       <div class="ubadge" onclick="openModal('acctModal')">
@@ -288,7 +288,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
           </div>
         </div>
         <div class="map-tip" id="mapTip">Tap the map to place your pin</div>
-        <div class="map-legend" style="position:absolute;bottom:14px;left:10px;pointer-events:none">
+        <div class="map-legend" style="position:absolute;bottom:14px;left:10px;pointer-events:all">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Filter</div>
+          <div style="display:flex;gap:5px;margin-bottom:8px">
+            <button onclick="setMapScope('all')" id="mapScopeAll" style="flex:1;background:rgba(212,168,67,.9);color:var(--navyd);border:none;border-radius:var(--rsm);padding:5px 6px;font-size:10px;font-weight:700;font-family:var(--ff);cursor:pointer">Both</button>
+            <button onclick="setMapScope('mine')" id="mapScopeMine" style="flex:1;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:var(--rsm);padding:5px 6px;font-size:10px;font-weight:700;font-family:var(--ff);cursor:pointer">Kyle's</button>
+            <button onclick="setMapScope('other')" id="mapScopeOther" style="flex:1;background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:var(--rsm);padding:5px 6px;font-size:10px;font-weight:700;font-family:var(--ff);cursor:pointer">Sean's</button>
+          </div>
           <div class="legend-row"><div class="ldot" style="background:#c0392b"></div>Hot</div>
           <div class="legend-row"><div class="ldot" style="background:#e67e22"></div>Warm</div>
           <div class="legend-row"><div class="ldot" style="background:#2471a3"></div>Cool</div>
@@ -298,7 +304,20 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       </div>
     </div>
 
-    <div class="screen" id="screen-today"><div id="todayContent"></div><div style="height:70px"></div></div>
+    <div class="screen" id="screen-today">
+  <div id="todayControls" style="background:var(--surf);border-bottom:1px solid var(--bord);padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+    <div style="display:flex;align-items:center;gap:8px;flex:1">
+      <input type="checkbox" id="ignoreTripGaps" onchange="renderToday()" style="width:auto;padding:0;flex-shrink:0">
+      <label for="ignoreTripGaps" style="font-size:12px;font-weight:600;color:var(--txt);text-transform:none;letter-spacing:0;margin:0;cursor:pointer">Treat all visits as one trip (ignore time gaps)</label>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+      <label style="font-size:11px;color:var(--txt2);text-transform:none;letter-spacing:0;margin:0;white-space:nowrap">Override miles:</label>
+      <input type="number" id="manualMiles" placeholder="—" min="0" step="0.1" oninput="renderToday()" style="width:70px;padding:6px 8px;font-size:13px;text-align:center">
+    </div>
+  </div>
+  <div id="todayContent" style="padding:14px"></div>
+  <div style="height:70px"></div>
+</div>
 
     <div class="screen" id="screen-analytics"><div id="analyticsContent"></div><div style="height:70px"></div></div>
 
@@ -385,6 +404,20 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   <div id="usageWarning" style="display:none;background:#fdecea;border:1px solid var(--hot);border-radius:var(--rsm);padding:9px 12px;font-size:12px;color:var(--hot);font-weight:600;margin-top:8px"></div>
 </div>
 
+<div class="sec">Batch Update Missing Info</div>
+<div class="exp-card">
+  <h3>🔍 Find Missing Addresses &amp; Phones</h3>
+  <p>Scans all your prospects that are missing an address or phone number and uses Claude to look them up online. Reviews each result before applying.</p>
+  <div id="batchStatus" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
+  <div id="batchResults" style="max-height:300px;overflow-y:auto"></div>
+  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.6;background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:9px 12px">
+    💡 <strong>How it works:</strong> First tries free map lookup (0 credits). Only sends businesses it can't find that way to Claude (1 credit each). Shows you the cost before running Claude.
+  </div>
+  <button class="btn btn-primary btn-sm" onclick="startBatchLookup()" id="batchBtn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    Start Batch Lookup
+  </button>
+</div>
 <div class="sec">Install on Phone</div>
       <div class="card"><div class="card-bd">
         <div style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this URL in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div></div>
@@ -745,7 +778,16 @@ function renderLeads(){
   else if(sort==='temp'){const o={hot:0,warm:1,cool:2,cold:3};list.sort((a,b)=>(o[a.temp]||4)-(o[b.temp]||4));}
   else if(sort==='followup')list.sort((a,b)=>{if(!a.followupDate)return 1;if(!b.followupDate)return -1;return a.followupDate.localeCompare(b.followupDate);});
   else if(sort==='starred')list.sort((a,b)=>(b.starred?1:0)-(a.starred?1:0));
-  else list.sort((a,b)=>((b.starred?1:0)-(a.starred?1:0))||b.updatedAt.localeCompare(a.updatedAt));
+  else{
+    // Sort by last visit date if available, otherwise creation date
+    // This prevents edits from bumping leads to top of list
+    list.sort(function(a,b){
+      var aDate=a.lastVisitAt||a.createdAt||a.updatedAt;
+      var bDate=b.lastVisitAt||b.createdAt||b.updatedAt;
+      var starred=(b.starred?1:0)-(a.starred?1:0);
+      return starred||bDate.localeCompare(aDate);
+    });
+  }
   document.getElementById('leadsList').innerHTML=list.length?list.map(l=>liHtml(l,cScope==='all')).join(''):'<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><p>'+(q?'No results':'No prospects yet')+'</p><small>Tap + to add one</small></div>';
 }
 
@@ -766,14 +808,29 @@ function liHtml(l,showOwner){
 
 // ── TODAY ──────────────────────────────────────────────
 function renderToday(){
-  const t=today();
-  const mine=(window._leads||[]).filter(l=>l.userId===myId());
-  const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));
-  const miles=todayL.filter(l=>l.address).length*8;
-  const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  let h='<div style="background:var(--navyd);color:#fff;border-radius:var(--r);padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:var(--fd);font-size:18px">Today\'s Route</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">'+dn+'</div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700;color:var(--gold);font-family:var(--fd)">'+todayL.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Stops</div></div></div>';
+  var t=today();
+  var mine=(window._leads||[]).filter(function(l){return l.userId===myId();});
+  var todayL=mine.filter(function(l){return l.visits&&l.visits.some(function(v){return v.date.startsWith(t);});});
+  var dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var h='<div style="background:var(--navyd);color:#fff;border-radius:var(--r);padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:var(--fd);font-size:18px">Today\'s Route</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">'+dn+'</div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700;color:var(--gold);font-family:var(--fd)">'+todayL.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Stops</div></div></div>';
   if(todayL.length){
-    h+='<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px"><div style="font-size:26px;font-weight:700;color:var(--navy);font-family:var(--fd)">~'+miles+' mi</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">Est. round trip from Coastal Business Systems, Redding CA</div></div><div class="sec">Businesses Visited</div>'+todayL.map(l=>liHtml(l)).join('');
+    var manualEl=document.getElementById('manualMiles');
+    var ignoreEl=document.getElementById('ignoreTripGaps');
+    var manualVal=manualEl?parseFloat(manualEl.value):NaN;
+    var ignoreGaps=ignoreEl?ignoreEl.checked:false;
+    var hasGps=todayL.some(function(l){return l.lat&&l.lng;});
+    var miles,milesLabel,milesNote;
+    if(!isNaN(manualVal)&&manualVal>0){
+      miles=manualVal;milesLabel=miles+' mi (manual)';milesNote='Manually entered mileage for today';
+    } else if(hasGps&&typeof calcSmartMileage==='function'){
+      miles=ignoreGaps?calcSmartMileageOneTrip(todayL):calcSmartMileage(todayL);
+      milesLabel=miles+' mi (GPS)';
+      milesNote=ignoreGaps?'All visits treated as one trip — HQ → stops → HQ':'HQ to all stops and back (1hr gap = new trip)';
+    } else {
+      miles=todayL.filter(function(l){return l.address;}).length*8;
+      milesLabel='~'+miles+' mi (est.)';milesNote='Rough estimate — add GPS pins for accurate mileage';
+    }
+    h+='<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px"><div style="font-size:26px;font-weight:700;color:var(--navy);font-family:var(--fd)">'+milesLabel+'</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">'+milesNote+'</div></div><div class="sec">Businesses Visited</div>'+todayL.map(function(l){return liHtml(l);}).join('');
   } else {
     h+='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><p>No visits today</p><small>Get out there and prospect!</small></div>';
   }
@@ -824,14 +881,25 @@ function renderDetail(id){
   const owner=(window._users||[]).find(u=>u.id===l.userId);
   let h='<div class="dhdr"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px"><div class="dbiz">'+(l.starred?'⭐ ':'')+(l.bizName||'Unnamed Business')+'</div>'+(tc?'<span class="badge b-'+tc+'" style="flex-shrink:0">'+(tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊')+' '+tc.charAt(0).toUpperCase()+tc.slice(1)+'</span>':'')+'</div>'+(l.address?'<div class="dsub">📍 '+l.address+'</div>':'')+(l.bizType?'<div class="dsub">🏢 '+l.bizType+(l.employees?' · ~'+l.employees+' employees':'')+'</div>':'')+(l.status?'<div class="dsub">Status: '+l.status+'</div>':'')+(owner&&owner.id!==myId()?'<div class="dsub" style="margin-top:5px">👤 <strong style="color:'+owner.color+'">'+owner.name+'</strong>\'s lead</div>':'')+'</div>';
   if(isOwner)h+='<div style="display:flex;gap:8px;margin-bottom:13px"><button class="btn btn-primary" style="flex:2" onclick="openEditLead(\''+id+'\')">✏️ Edit</button><button class="btn btn-out btn-sm" style="flex-shrink:0" onclick="toggleStar(\''+id+'\')">'+(l.starred?'★ Unstar':'☆ Star')+'</button><button class="btn btn-danger" onclick="delLead(\''+id+'\')">Delete</button></div>';
-  if(l.followupDate)h+='<div class="fubar">📅 Follow-up: <strong>'+fds(l.followupDate)+'</strong>'+(new Date(l.followupDate)<=new Date()?' <span style="color:var(--hot);font-weight:700">— OVERDUE</span>':'')+'</div>';
+  if(l.followupDate){
+    var isOverdue=new Date(l.followupDate)<=new Date();
+    h+='<div class="fubar" style="justify-content:space-between;flex-wrap:wrap;gap:8px">'+
+      '<span>📅 Follow-up: <strong>'+fds(l.followupDate)+'</strong>'+(isOverdue?' <span style="color:var(--hot);font-weight:700">— OVERDUE</span>':'')+'</span>'+
+      (isOwner?'<button onclick="markFollowedUp(\''+id+'\',event)" style="background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:5px 11px;font-size:11px;font-weight:700;font-family:var(--ff);cursor:pointer;flex-shrink:0">✓ Mark Done</button>':'')+
+      '</div>';
+  }
   if(l.phoneEmails&&l.phoneEmails.length){h+='<div class="card"><div class="card-hd">Phone &amp; Email</div><div class="card-bd">';l.phoneEmails.forEach(function(pe){const isP=pe.type&&(pe.type.includes('Phone')||pe.type.includes('Cell'));const isE=pe.type&&pe.type.includes('Email');h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-size:11px;color:var(--txt2)">'+(pe.label||pe.type)+'</div><a class="tap-link" href="'+(isP?'tel:':isE?'mailto:':'')+pe.value+'" style="font-size:15px;font-weight:700;text-decoration:none">'+(isP?'📞 ':isE?'✉️ ':'')+pe.value+'</a></div>';});h+='</div></div>';}
   if(l.contacts&&l.contacts.length){h+='<div class="card"><div class="card-hd">Contacts Spoken To</div><div class="card-bd">';l.contacts.forEach(function(c){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">'+(c.name||'—')+'</div>'+(c.title?'<div style="font-size:12px;color:var(--txt2)">'+c.title+'</div>':'')+'</div>';});h+='</div></div>';}
   if(l.needContacts&&l.needContacts.length){h+='<div class="card"><div class="card-hd">Need to Speak To</div><div class="card-bd">';l.needContacts.forEach(function(c){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">'+(c.name||'—')+'</div>'+(c.title?'<div style="font-size:12px;color:var(--txt2)">'+c.title+'</div>':'')+(c.notes?'<div style="font-size:12px;color:var(--txt2)">'+c.notes+'</div>':'')+'</div>';});h+='</div></div>';}
   if(l.printerCount||l.totalPages||(l.printers&&l.printers.length)){h+='<div class="card"><div class="card-hd">Equipment</div><div class="card-bd">';if(l.printerCount)h+='<div class="irow"><div class="ilbl">Est. Printers</div><div class="ival">'+l.printerCount+'</div></div>';if(l.totalPages)h+='<div class="irow"><div class="ilbl">Pages/Month</div><div class="ival">'+parseInt(l.totalPages).toLocaleString()+'</div></div>';(l.printers||[]).forEach(function(p,i){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">Printer '+(i+1)+(p.brand?' — '+p.brand:'')+(p.model?' '+p.model:'')+'</div>'+(p.pages?'<div style="font-size:12px;color:var(--txt2)">'+parseInt(p.pages).toLocaleString()+' pg/mo</div>':'')+'</div>';});h+='</div></div>';}
   if(l.hasLease)h+='<div class="card"><div class="card-hd">Lease Info</div><div class="card-bd"><div class="irow"><div class="ilbl">Has Lease</div><div class="ival">'+(l.hasLease==='yes'?'✅ Yes':'❌ No')+'</div></div>'+(l.leaseco?'<div class="irow"><div class="ilbl">Leased From</div><div class="ival">'+l.leaseco+'</div></div>':'')+(l.leaseend?'<div class="irow"><div class="ilbl">Ends</div><div class="ival">'+fds(l.leaseend)+'</div></div>':'')+(l.leaseamt?'<div class="irow"><div class="ilbl">Monthly</div><div class="ival">$'+parseInt(l.leaseamt).toLocaleString()+'/mo</div></div>':'')+'</div></div>';
   h+='<div class="card"><div class="card-hd">Visit History ('+(l.visits||[]).length+')</div><div class="card-bd">';
-  if(l.visits&&l.visits.length)[...l.visits].reverse().forEach(function(v){h+='<div class="ve"><div class="vd">'+fdt(v.date)+'</div><div class="vn">'+(v.notes||'<span style="color:var(--txth)">No notes</span>')+'</div></div>';});
+  if(l.visits&&l.visits.length){
+    var sortedVisits=[...l.visits].sort(function(a,b){return new Date(b.date)-new Date(a.date);});
+    sortedVisits.forEach(function(v){
+      h+='<div class="ve"><div class="vd">'+fdt(v.date)+'</div><div class="vn">'+(v.notes||'<span style="color:var(--txth)">No notes recorded</span>')+'</div></div>';
+    });
+  }
   else h+='<div style="font-size:13px;color:var(--txt2)">No visits yet</div>';
   h+='<div class="divider"></div><div style="font-weight:700;font-size:13px;margin-bottom:7px">Log New Visit Note</div><textarea id="addNoteT" placeholder="Notes for this visit…" style="width:100%;padding:9px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);min-height:66px;background:var(--bg);color:var(--txt)"></textarea><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="addVisit(\''+id+'\')">+ Log Visit</button></div></div>';
   h+='<div style="margin-bottom:12px"><button class="btn btn-out" style="width:100%" onclick="goBack()">← Back to Leads</button></div>';
@@ -903,8 +971,18 @@ function collectEntries(cid,t){
 function saveLead(){
   const noteText=document.getElementById('f_notes').value.trim();
   const data={bizName:document.getElementById('f_biz').value.trim(),address:document.getElementById('f_addr').value.trim(),bizType:document.getElementById('f_biztype').value,employees:document.getElementById('f_employees').value,temp:cTemp,status:document.getElementById('f_status').value,followupDate:document.getElementById('f_fudate').value,starred:document.getElementById('f_starred').checked,contacts:collectEntries('cCont','c'),needContacts:collectEntries('nCont','n'),phoneEmails:collectEntries('peCont','pe'),printerCount:document.getElementById('f_pcount').value,totalPages:document.getElementById('f_tpages').value,printers:collectEntries('prCont','pr'),hasLease:document.getElementById('f_lease').value,leaseend:document.getElementById('f_leaseend').value,leaseco:document.getElementById('f_leaseco').value.trim(),leaseamt:document.getElementById('f_leaseamt').value,userId:myId(),lat:pendingLatLng&&pendingLatLng.lat||null,lng:pendingLatLng&&pendingLatLng.lng||null,pinColor:pinColor};
-  if(editId){const l=(window._leads||[]).find(function(x){return x.id===editId;});if(noteText&&l)data.visits=[...(l.visits||[]),{date:now(),notes:noteText}];window.fbSaveLead(data,editId);}
-  else{data.visits=noteText?[{date:now(),notes:noteText}]:[];window.fbSaveLead(data,null);}
+  if(editId){
+    const l=(window._leads||[]).find(function(x){return x.id===editId;});
+    if(noteText&&l){const n=now();data.visits=[...(l.visits||[]),{date:n,notes:noteText}];data.lastVisitAt=n;}
+    // Never overwrite createdAt on edit - preserves original visit order
+    delete data.createdAt;
+    window.fbSaveLead(data,editId);
+  } else {
+    const n=now();
+    data.visits=noteText?[{date:n,notes:noteText}]:[];
+    data.lastVisitAt=n;
+    window.fbSaveLead(data,null);
+  }
   pendingLatLng=null;closeModal('leadModal');showScreen('leads');
 }
 
@@ -1027,10 +1105,28 @@ function exportHubspot(){
     const owner=(window._users||[]).find(function(u){return u.id===l.userId;});
     const phone=(l.phoneEmails||[]).find(function(p){return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'));});
     const email=(l.phoneEmails||[]).find(function(p){return p.type&&p.type.includes('Email');});
-    const lastNote=l.visits&&l.visits.length?l.visits[l.visits.length-1].notes:'';
+    // Build condensed notes block with ALL non-standard fields
+    var noteLines=[];
+    if(l.printerCount)noteLines.push('Estimated printers: '+l.printerCount);
+    if(l.totalPages)noteLines.push('Est. pages/month: '+parseInt(l.totalPages||0).toLocaleString());
+    if(l.printers&&l.printers.length)noteLines.push('Printers: '+l.printers.map(function(p){return [p.brand,p.model,p.colortype,p.pages?p.pages+'pg/mo':''].filter(Boolean).join(' ');}).join('; '));
+    if(l.hasLease==='yes'){
+      var leaseStr='Has lease';
+      if(l.leaseco)leaseStr+=' with '+l.leaseco;
+      if(l.leaseend)leaseStr+=' ending '+fds(l.leaseend);
+      if(l.leaseamt)leaseStr+=' ($'+l.leaseamt+'/mo)';
+      noteLines.push(leaseStr);
+    }
+    if(l.needContacts&&l.needContacts.length)noteLines.push('Need to reach: '+l.needContacts.map(function(c){return c.name+(c.title?' ('+c.title+')':'');}).join(', '));
+    // Add all visit notes chronologically
+    if(l.visits&&l.visits.length){
+      var sortedV=[...l.visits].sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+      sortedV.forEach(function(v){if(v.notes)noteLines.push('['+fdt(v.date)+'] '+v.notes);});
+    }
+    var condensedNote=noteLines.join('\n');
     const addrParts=(l.address||'').split(',');
-    compRows.push([l.bizName||'',phone&&phone.value||'',email&&email.value||'',addrParts[0]&&addrParts[0].trim()||'',addrParts[1]&&addrParts[1].trim()||'Redding',(addrParts[2]&&addrParts[2].trim().split(' ')[0])||'CA',(addrParts[2]&&addrParts[2].trim().split(' ')[1])||'',l.bizType||'',l.employees||'',owner&&owner.name||'',lastNote,l.temp?l.temp.charAt(0).toUpperCase()+l.temp.slice(1)+' Lead':'',l.status||'']);
-    (l.contacts||[]).forEach(function(c){const parts=(c.name||'').split(' ');contRows.push([parts[0]||'',parts.slice(1).join(' ')||'','','',c.title||'',l.bizName||'',owner&&owner.name||'',l.temp?l.temp+' lead':'',lastNote]);});
+    compRows.push([l.bizName||'',phone&&phone.value||'',email&&email.value||'',addrParts[0]&&addrParts[0].trim()||'',addrParts[1]&&addrParts[1].trim()||'Redding',(addrParts[2]&&addrParts[2].trim().split(' ')[0])||'CA',(addrParts[2]&&addrParts[2].trim().split(' ')[1])||'',l.bizType||'',l.employees||'',owner&&owner.name||'',condensedNote,l.temp?l.temp.charAt(0).toUpperCase()+l.temp.slice(1)+' Lead':'',l.status||'']);
+    (l.contacts||[]).forEach(function(c){const parts=(c.name||'').split(' ');contRows.push([parts[0]||'',parts.slice(1).join(' ')||'','','',c.title||'',l.bizName||'',owner&&owner.name||'',l.temp?l.temp+' lead':'',condensedNote]);});
   });
   const toCSV=function(rows){return rows.map(function(r){return r.map(function(c){return '"'+String(c||'').replace(/"/g,'""')+'"';}).join(',');}).join('\n');};
   dl(toCSV(compRows),'hubspot-companies-'+today()+'.csv','text/csv');
@@ -1978,6 +2074,435 @@ saveLead=function(){
     _origSaveLead();
   });
 };
+
+// ── OFFLINE INDICATOR ─────────────────────────────────────────────────
+window.addEventListener('online',function(){
+  document.getElementById('offlineBadge').style.display='none';
+  window.sd&&window.sd('syncing');
+});
+window.addEventListener('offline',function(){
+  document.getElementById('offlineBadge').style.display='inline';
+  window.sd&&window.sd('off');
+});
+if(!navigator.onLine)document.getElementById('offlineBadge').style.display='inline';
+
+// ── MARK FOLLOWED UP ──────────────────────────────────────────────────
+function markFollowedUp(id,e){
+  if(e)e.stopPropagation();
+  if(!confirm('Mark this follow-up as done? This will clear the follow-up date.'))return;
+  window.fbUpdateLead(id,{followupDate:''}).then(function(){renderDetail(id);});
+}
+
+// ── DUPLICATE DETECTION ───────────────────────────────────────────────
+function checkDuplicate(bizName){
+  if(!bizName||bizName.length<3)return null;
+  var lower=bizName.toLowerCase().trim();
+  var leads=window._leads||[];
+  return leads.find(function(l){
+    if(!l.bizName)return false;
+    var existing=l.bizName.toLowerCase().trim();
+    // Exact match or very similar (one contains the other)
+    return existing===lower||existing.includes(lower)||lower.includes(existing);
+  });
+}
+
+// Override saveLead to check duplicates
+var _origSaveLeadFn=saveLead;
+saveLead=function(){
+  if(!editId){
+    var bizName=document.getElementById('f_biz').value.trim();
+    var dup=checkDuplicate(bizName);
+    if(dup){
+      var msg='⚠️ "'+dup.bizName+'" already exists in your database'+(dup.userId!==myId()?' (added by another user)':'')+'. Add anyway?';
+      if(!confirm(msg))return;
+    }
+  }
+  _origSaveLeadFn();
+};
+
+// ── SMART MILEAGE CALCULATION ─────────────────────────────────────────
+// HQ coords (Coastal Business Systems, Redding CA)
+var HQ_LAT=40.5865,HQ_LNG=-122.3917;
+var TRIP_GAP_MS=60*60*1000; // 1 hour gap = new trip
+
+function calcSmartMileage(todayLeads){
+  // Collect all visits for today with their timestamps and lead locations
+  var t=today();
+  var stops=[];
+  todayLeads.forEach(function(l){
+    if(!l.lat||!l.lng)return;
+    (l.visits||[]).forEach(function(v){
+      if(v.date.startsWith(t))stops.push({time:new Date(v.date),lat:l.lat,lng:l.lng,name:l.bizName||'Visit'});
+    });
+  });
+  if(!stops.length)return 0;
+  stops.sort(function(a,b){return a.time-b.time;});
+  // Split into trips by 1-hour gap
+  var trips=[];var currentTrip=[stops[0]];
+  for(var i=1;i<stops.length;i++){
+    if(stops[i].time-stops[i-1].time>TRIP_GAP_MS){
+      trips.push(currentTrip);currentTrip=[stops[i]];
+    } else {
+      currentTrip.push(stops[i]);
+    }
+  }
+  trips.push(currentTrip);
+  // Calculate distance for each trip: HQ → stops → HQ
+  var totalMiles=0;
+  trips.forEach(function(trip){
+    var prevLat=HQ_LAT,prevLng=HQ_LNG;
+    trip.forEach(function(stop){
+      totalMiles+=haversineMiles(prevLat,prevLng,stop.lat,stop.lng);
+      prevLat=stop.lat;prevLng=stop.lng;
+    });
+    // Return to HQ
+    totalMiles+=haversineMiles(prevLat,prevLng,HQ_LAT,HQ_LNG);
+  });
+  return Math.round(totalMiles*10)/10;
+}
+
+function haversineMiles(lat1,lng1,lat2,lng2){
+  var R=3958.8; // Earth radius in miles
+  var dLat=(lat2-lat1)*Math.PI/180;
+  var dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+    Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+    Math.sin(dLng/2)*Math.sin(dLng/2);
+  var c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return R*c;
+}
+
+// One-trip version: treats all visits as single trip regardless of time gaps
+function calcSmartMileageOneTrip(todayLeads){
+  var t=today();
+  var stops=[];
+  todayLeads.forEach(function(l){
+    if(!l.lat||!l.lng)return;
+    var earliestVisit=null;
+    (l.visits||[]).forEach(function(v){
+      if(v.date.startsWith(t)){
+        var d=new Date(v.date);
+        if(!earliestVisit||d<earliestVisit)earliestVisit=d;
+      }
+    });
+    if(earliestVisit)stops.push({time:earliestVisit,lat:l.lat,lng:l.lng});
+  });
+  if(!stops.length)return 0;
+  stops.sort(function(a,b){return a.time-b.time;});
+  // Single trip: HQ → all stops → HQ
+  var total=0,prevLat=HQ_LAT,prevLng=HQ_LNG;
+  stops.forEach(function(s){
+    total+=haversineMiles(prevLat,prevLng,s.lat,s.lng);
+    prevLat=s.lat;prevLng=s.lng;
+  });
+  total+=haversineMiles(prevLat,prevLng,HQ_LAT,HQ_LNG);
+  return Math.round(total*10)/10;
+}
+
+// Override renderToday to use smart mileage
+// Smart mileage now built into renderToday directly
+
+// ── MAP SCOPE FILTER ──────────────────────────────────────────────────
+var mapScope='all';
+function setMapScope(scope){
+  mapScope=scope;
+  ['all','mine','other'].forEach(function(s){
+    var btn=document.getElementById('mapScope'+s.charAt(0).toUpperCase()+s.slice(1));
+    if(btn)btn.style.background=s===scope?'rgba(212,168,67,.9)':'rgba(255,255,255,.15)';
+    if(btn)btn.style.color=s===scope?'var(--navyd)':'#fff';
+  });
+  refreshMapPins();
+}
+
+// Override refreshMapPins to use mapScope + user colors
+var _origRefreshMapPins=window.refreshMapPins;
+window.refreshMapPins=function(){
+  var frame=document.getElementById('mapFrame');
+  if(!frame||!frame.contentWindow||!frame.contentWindow.refreshPins)return;
+  var leads=window._leads||[];
+  var users=window._users||[];
+  var myUid=myId();
+  // Filter by scope
+  var filtered=leads.filter(function(l){
+    if(!l.lat||!l.lng)return false;
+    if(mapScope==='mine')return l.userId===myUid;
+    if(mapScope==='other')return l.userId!==myUid;
+    return true;
+  });
+  var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+  var pins=filtered.map(function(l){
+    var isMe=l.userId===myUid;
+    var owner=users.find(function(u){return u.id===l.userId;});
+    // When showing both users: use user's profile color for pin border
+    var col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
+    var borderCol=mapScope==='all'&&owner?owner.color:'#ffffff';
+    var biz=(l.bizName||'Unnamed').replace(/"/g,'&quot;');
+    var addr=(l.address||'').replace(/"/g,'&quot;');
+    return {lat:l.lat,lng:l.lng,col:col,borderCol:borderCol,r:l.starred?13:10,id:l.id,biz:biz,addr:addr,temp:l.temp||'',owner:owner?owner.name:''};
+  });
+  try{frame.contentWindow.refreshPins(pins);}catch(e){initMap();}
+};
+
+// Also rebuild mapHTML to support custom border colors on pins
+var _origBuildMapHTML=buildMapHTML;
+buildMapHTML=function(){
+  var leads=window._leads||[];
+  var users=window._users||[];
+  var myUid=myId();
+  var filtered=leads.filter(function(l){
+    if(!l.lat||!l.lng)return false;
+    if(mapScope==='mine')return l.userId===myUid;
+    if(mapScope==='other')return l.userId!==myUid;
+    return true;
+  });
+  var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+  var pins=filtered.map(function(l){
+    var owner=users.find(function(u){return u.id===l.userId;});
+    var col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
+    var borderCol=mapScope==='all'&&owner?owner.color:'#ffffff';
+    var biz=(l.bizName||'Unnamed').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    var addr=(l.address||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
+    return {lat:l.lat,lng:l.lng,col:col,borderCol:borderCol,r:l.starred?13:10,id:l.id,biz:biz,addr:addr,temp:l.temp||'',owner:owner?owner.name:''};
+  });
+  var tileUrl=satOn?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var tileAttr=satOn?'Tiles &copy; Esri':'&copy; OpenStreetMap';
+  var labelsLine=satOn?'L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",{attribution:"&copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);':'';
+  var pinsJson=JSON.stringify(pins);
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><style>*{margin:0;padding:0}html,body,#m{width:100%;height:100vh;overflow:hidden}.leaflet-popup-content{margin:10px 12px;font-family:sans-serif;font-size:13px}</style></head><body><div id="m"></div><script>var map=L.map("m",{center:[40.8,-122.3],zoom:10,minZoom:7,maxZoom:19,maxBounds:[[39.5,-124.5],[42.1,-120.0]],maxBoundsViscosity:0.85});L.tileLayer("'+tileUrl+'",{attribution:"'+tileAttr+'",maxZoom:19}).addTo(map);'+labelsLine+'var pins='+pinsJson+';pins.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.temp?"<br><b style=\'color:"+p.col+"\'>"+p.temp+" lead</b>":"")+(p.owner?"<br>By "+p.owner:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\""+p.id+"\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details</a>",{maxWidth:220});});map.on("click",function(e){parent.onMapFrameClick(e.latlng.lat,e.latlng.lng);});window.flyTo=function(lat,lng,z){map.flyTo([lat,lng],z||14);};window.refreshPins=function(ps){map.eachLayer(function(l){if(l instanceof L.CircleMarker)map.removeLayer(l);});ps.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.owner?"<br>By "+p.owner:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\""+p.id+"\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details</a>",{maxWidth:220});});};map.invalidateSize();<\/script></body></html>';
+};
+
+// ── BATCH LOOKUP — HYBRID: FREE OSM FIRST, CLAUDE ONLY FOR MISSES ────
+var batchQueue=[],batchIndex=0,batchRunning=false;
+var batchOsmHits=0,batchClaudeNeeded=[];
+
+function startBatchLookup(){
+  var mine=(window._leads||[]).filter(function(l){return l.userId===myId();});
+  var needsLookup=mine.filter(function(l){
+    var hasAddr=l.address&&l.address.trim().length>5;
+    var hasPhone=(l.phoneEmails||[]).some(function(p){
+      return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
+    });
+    return !hasAddr||!hasPhone;
+  });
+  if(!needsLookup.length){
+    document.getElementById('batchStatus').textContent='✅ All your prospects already have addresses and phone numbers!';
+    return;
+  }
+  batchQueue=needsLookup;
+  batchIndex=0;batchRunning=true;batchOsmHits=0;batchClaudeNeeded=[];
+  document.getElementById('batchBtn').disabled=true;
+  document.getElementById('batchBtn').textContent='Running…';
+  document.getElementById('batchResults').innerHTML='';
+  document.getElementById('batchStatus').textContent='Step 1 of 2: Trying free map lookup for '+needsLookup.length+' prospects (no credits used)…';
+  // Phase 1: try OSM for all of them first (free, no credits)
+  runOsmPhase();
+}
+
+function runOsmPhase(){
+  if(batchIndex>=batchQueue.length){
+    // OSM phase done — show summary and start Claude phase if needed
+    finishOsmPhase();
+    return;
+  }
+  var l=batchQueue[batchIndex];
+  batchIndex++;
+  var needsAddr=!l.address||l.address.trim().length<=5;
+  if(!needsAddr){
+    // Only missing phone — OSM can't find phones, go straight to Claude queue
+    batchClaudeNeeded.push(l);
+    document.getElementById('batchStatus').textContent='Checking '+batchIndex+' of '+batchQueue.length+' via free lookup…';
+    setTimeout(runOsmPhase,100);
+    return;
+  }
+  // Try OSM geocode by business name + city
+  var query=l.bizName+(l.address?', '+l.address:', Redding CA');
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(query)+'&addressdetails=1&limit=1&countrycodes=us',
+    {headers:{'Accept-Language':'en-US,en'}})
+  .then(function(r){return r.json();})
+  .then(function(results){
+    if(results&&results[0]&&results[0].name){
+      var r=results[0];
+      var a=r.address||{};
+      var street=(a.house_number?a.house_number+' ':'')+
+        (a.road||a.pedestrian||a.footway||'');
+      var city=a.city||a.town||a.village||a.county||'';
+      var state=a.state||'CA';
+      var zip=a.postcode||'';
+      var fullAddr=street?(street+(city?', '+city:'')+(state?', '+state:'')+(zip?' '+zip:'')):'';
+      if(fullAddr&&fullAddr.trim().length>5){
+        // OSM found an address — apply it directly (free!)
+        batchOsmHits++;
+        var updates={address:fullAddr};
+        // Geocode was already done — use lat/lng from result
+        if(r.lat&&r.lon){
+          updates.lat=parseFloat(r.lat);
+          updates.lng=parseFloat(r.lon);
+        }
+        window.fbUpdateLead(l.id,updates);
+        showBatchResult(l,{address:fullAddr,phone:'',osmHit:true});
+        // If also missing phone, add to Claude queue
+        var hasPhone=(l.phoneEmails||[]).some(function(p){
+          return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
+        });
+        if(!hasPhone)batchClaudeNeeded.push(l);
+      } else {
+        batchClaudeNeeded.push(l);
+      }
+    } else {
+      batchClaudeNeeded.push(l);
+    }
+    document.getElementById('batchStatus').textContent='Free lookup: '+batchIndex+' of '+batchQueue.length+' checked…';
+    setTimeout(runOsmPhase,400); // small delay to be nice to OSM servers
+  }).catch(function(){
+    batchClaudeNeeded.push(l);
+    setTimeout(runOsmPhase,500);
+  });
+}
+
+function finishOsmPhase(){
+  var claudeCount=batchClaudeNeeded.length;
+  if(claudeCount===0){
+    document.getElementById('batchBtn').disabled=false;
+    document.getElementById('batchBtn').textContent='Start Batch Lookup';
+    document.getElementById('batchStatus').innerHTML=
+      '✅ Done! Found <strong>'+batchOsmHits+'</strong> addresses via free map lookup. '+
+      'Review results below — no AI credits used!';
+    return;
+  }
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey){
+    document.getElementById('batchBtn').disabled=false;
+    document.getElementById('batchBtn').textContent='Start Batch Lookup';
+    document.getElementById('batchStatus').innerHTML=
+      'Free lookup done: <strong>'+batchOsmHits+'</strong> found free. '+
+      '<strong>'+claudeCount+'</strong> still need Claude (add API key in Settings to continue).';
+    return;
+  }
+  // Show user what Claude will cost before starting
+  document.getElementById('batchStatus').innerHTML=
+    '✅ Free lookup done: <strong>'+batchOsmHits+'</strong> found free. '+
+    '<strong>'+claudeCount+'</strong> need Claude (~'+claudeCount+' credit'+(claudeCount>1?'s':'')+').'+
+    ' <button onclick="startClaudePhase()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:5px 12px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer;margin-left:6px">Run Claude Lookup →</button>'+
+    ' <button onclick="cancelBatch()" style="background:none;color:var(--txt2);border:1px solid var(--bord);border-radius:var(--rsm);padding:5px 10px;font-size:12px;font-family:var(--ff);cursor:pointer;margin-left:4px">Skip</button>';
+  document.getElementById('batchBtn').disabled=false;
+  document.getElementById('batchBtn').textContent='Start Batch Lookup';
+}
+
+function cancelBatch(){
+  batchRunning=false;
+  document.getElementById('batchStatus').textContent='Done — review results above.';
+}
+
+function startClaudePhase(){
+  if(!checkUsageLimit())return;
+  batchIndex=0;batchRunning=true;
+  document.getElementById('batchStatus').textContent='Step 2 of 2: Claude is looking up '+batchClaudeNeeded.length+' remaining prospects…';
+  processClaudeNext();
+}
+
+function processClaudeNext(){
+  if(batchIndex>=batchClaudeNeeded.length||!batchRunning){
+    batchRunning=false;
+    document.getElementById('batchBtn').disabled=false;
+    document.getElementById('batchBtn').textContent='Start Batch Lookup';
+    document.getElementById('batchStatus').textContent=
+      '✅ All done! '+batchOsmHits+' found free via map, '+
+      batchIndex+' looked up via Claude. Review results below.';
+    return;
+  }
+  var l=batchClaudeNeeded[batchIndex];
+  batchIndex++;
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey||!checkUsageLimit()){
+    batchRunning=false;
+    document.getElementById('batchBtn').textContent='Start Batch Lookup';
+    return;
+  }
+  var needsAddr=!l.address||l.address.trim().length<=5;
+  var needsPhone=!(l.phoneEmails||[]).some(function(p){
+    return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
+  });
+  var what=[];
+  if(needsAddr)what.push('address');
+  if(needsPhone)what.push('phone number');
+  var prompt='Find the '+what.join(' and ')+' for this business: "'+
+    l.bizName.replace(/"/g,'\"')+'"'+
+    (l.address?' (located near '+l.address+')':' in Northern California (Redding/Chico/Red Bluff area)')+
+    '. Return ONLY JSON: {"address":"full street address, city, state zip","phone":"(xxx) xxx-xxxx","website":"","found":true}. If not found return {"found":false}.';
+  fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:200,
+      tools:[{type:'web_search_20250305',name:'web_search'}],
+      messages:[{role:'user',content:prompt}]
+    })
+  }).then(function(r){return r.json();})
+  .then(function(data){
+    incrementUsage();
+    var text='';
+    if(data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
+    try{
+      var info=JSON.parse(text.replace(/```json|```/g,'').trim());
+      showBatchResult(l,info.found?info:null);
+    }catch(e){showBatchResult(l,null);}
+    document.getElementById('batchStatus').textContent=
+      'Claude lookup: '+batchIndex+' of '+batchClaudeNeeded.length+'…';
+    setTimeout(processClaudeNext,1200);
+  }).catch(function(){
+    setTimeout(processClaudeNext,2000);
+  });
+}
+
+function showBatchResult(l,info){
+  var div=document.createElement('div');
+  div.style.cssText='background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:9px';
+  if(!info){
+    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName)+'</div><div style="font-size:12px;color:var(--txth);margin-top:3px">Not found online</div>';
+  } else {
+    var changes=[];
+    if(info.address&&!l.address)changes.push('Address: '+info.address);
+    if(info.phone)changes.push('Phone: '+info.phone);
+    if(info.website)changes.push('Website: '+info.website);
+    var source=info.osmHit?'🆓 Free map lookup':'🤖 Claude';
+    div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName)+'<span style="font-size:10px;color:var(--txt2);margin-left:6px;font-weight:400">'+source+'</span></div>'+
+      '<div style="font-size:12px;color:var(--txt2);margin-top:3px;line-height:1.6">'+changes.map(escHtml).join('<br>')+'</div>';
+    var applyBtn=document.createElement('button');
+    applyBtn.textContent='✓ Apply';
+    applyBtn.style.cssText='margin-top:8px;background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:5px 13px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer';
+    applyBtn.addEventListener('click',function(){applyBatchResult(l.id,info);applyBtn.closest('div').style.opacity='0.4';});
+    var skipBtn=document.createElement('button');
+    skipBtn.textContent='Skip';
+    skipBtn.style.cssText='margin-top:8px;margin-left:7px;background:none;color:var(--txt2);border:1px solid var(--bord);border-radius:var(--rsm);padding:5px 10px;font-size:12px;font-family:var(--ff);cursor:pointer';
+    skipBtn.addEventListener('click',function(){div.remove();});
+    div.appendChild(applyBtn);div.appendChild(skipBtn);
+  }
+  document.getElementById('batchResults').appendChild(div);
+}
+
+function applyBatchResult(id,infoOrJson){
+  try{
+    var info=typeof infoOrJson==='string'?JSON.parse(infoOrJson):infoOrJson;
+    var l=(window._leads||[]).find(function(x){return x.id===id;});
+    if(!l)return;
+    var updates={};
+    if(info.address&&!l.address){
+      updates.address=info.address;
+      geocodeAddress(info.address).then(function(coords){
+        if(coords)window.fbUpdateLead(id,{lat:coords.lat,lng:coords.lng});
+      });
+    }
+    if(info.phone){
+      var existing=(l.phoneEmails||[]);
+      var hasPhone=existing.some(function(p){return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'));});
+      if(!hasPhone)updates.phoneEmails=[...existing,{type:'Phone',label:'Office',value:info.phone}];
+    }
+    if(Object.keys(updates).length)window.fbUpdateLead(id,updates);
+    showToast('Updated '+((l&&l.bizName)||'prospect'));
+    showToast('Updated '+((l&&l.bizName)||'prospect'));
+  }catch(e){console.error(e);}
+}
 </script>
 </body>
 </html>
