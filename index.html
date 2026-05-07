@@ -988,20 +988,85 @@ function saveLead(){
 
 // ── MAP (iframe-based) ─────────────────────────────────
 function buildMapHTML(){
-  const leads=window._leads||[];
-  const users=window._users||[];
-  const cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
-  const pins=leads.filter(function(l){return l.lat&&l.lng;}).map(function(l){
-    const col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
-    const owner=(users||[]).find(function(u){return u.id===l.userId;});
-    const biz=(l.bizName||'Unnamed').replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$/g,'\\$');
-    const addr=(l.address||'').replace(/\\/g,'\\\\').replace(/`/g,'\\`');
-    return {lat:l.lat,lng:l.lng,col:col,r:l.starred?13:10,id:l.id,biz:biz,addr:addr,temp:l.temp||'',owner:owner?owner.name:''};
+  var leads=window._leads||[];
+  var users=window._users||[];
+  var myUid=myId();
+  var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+  var useScope=typeof mapScope!=='undefined';
+  var filtered=leads.filter(function(l){
+    if(!l.lat||!l.lng)return false;
+    if(useScope){
+      if(mapScope==='mine')return l.userId===myUid;
+      if(mapScope==='other')return l.userId!==myUid;
+    }
+    return true;
   });
-  const tileUrl=satOn?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  const tileAttr=satOn?'Tiles &copy; Esri':'&copy; OpenStreetMap';
-  const labelsLine=satOn?'L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",{attribution:"&copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);':'';
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><style>*{margin:0;padding:0}html,body,#m{width:100%;height:100vh;overflow:hidden}.leaflet-popup-content{margin:10px 12px;font-family:sans-serif;font-size:13px}</style></head><body><div id="m"></div><script>var map=L.map("m",{center:[40.8,-122.3],zoom:10,minZoom:7,maxZoom:19,maxBounds:[[39.5,-124.5],[42.1,-120.0]],maxBoundsViscosity:0.85});L.tileLayer("'+tileUrl+'",{attribution:"'+tileAttr+'",maxZoom:19}).addTo(map);'+labelsLine+'var pins='+JSON.stringify(pins)+';pins.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:"#fff",weight:2,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<div><b>"+(p.biz||"Unnamed")+"</b>"+(p.addr?"<br>📍 "+p.addr:"")+(p.temp?"<br><b style=\'color:"+p.col+";text-transform:uppercase\'>"+p.temp+" lead</b>":"")+(p.owner?"<br>👤 "+p.owner:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\\""+p.id+"\\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details →</a></div>",{maxWidth:220});});map.on("click",function(e){parent.onMapFrameClick(e.latlng.lat,e.latlng.lng);});window.flyTo=function(lat,lng,z){map.flyTo([lat,lng],z||14);};window.refreshPins=function(ps){map.eachLayer(function(l){if(l instanceof L.CircleMarker)map.removeLayer(l);});ps.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:"#fff",weight:2,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<div><b>"+(p.biz||"Unnamed")+"</b>"+(p.addr?"<br>📍 "+p.addr:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\\""+p.id+"\\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details →</a></div>",{maxWidth:220});});};window.setView=function(lat,lng,z){map.setView([lat,lng],z||10);};<\/script></body></html>';
+  var sat=typeof satOn!=='undefined'?satOn:true;
+  var pins=filtered.map(function(l){
+    var owner=users.find(function(u){return u.id===l.userId;});
+    var col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
+    var borderCol=(useScope&&mapScope==='all'&&owner)?owner.color:'#ffffff';
+    return {
+      lat:l.lat,lng:l.lng,col:col,borderCol:borderCol,
+      r:l.starred?13:10,id:l.id,
+      biz:(l.bizName||'Unnamed').replace(/'/g,'&#39;').replace(/"/g,'&quot;'),
+      addr:(l.address||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'),
+      temp:l.temp||'',
+      owner:owner?(owner.name||'').replace(/'/g,'&#39;'):''
+    };
+  });
+  var tileUrl=sat
+    ?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+    :'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var tileAttr=sat?'Tiles &copy; Esri':'&copy; OpenStreetMap';
+  var labelsLine=sat
+    ?'L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",{attribution:"&copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);'
+    :'';
+  // Build iframe HTML as a string - keep all JS inside simple string concatenation
+  var iframeJS=[
+    'var map=L.map("m",{center:[40.8,-122.3],zoom:10,minZoom:7,maxZoom:19,maxBounds:[[39.5,-124.5],[42.1,-120.0]],maxBoundsViscosity:0.85});',
+    'L.tileLayer("'+tileUrl+'",{attribution:"'+tileAttr+'",maxZoom:19}).addTo(map);',
+    labelsLine,
+    'var pins='+JSON.stringify(pins)+';',
+    'pins.forEach(function(p){',
+    '  var popup=document.createElement("div");',
+    '  popup.innerHTML="<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.temp?"<br><b style=\'color:"+p.col+"\'>"+p.temp+" lead</b>":"")+(p.owner?"<br>By "+p.owner:"");',
+    '  var a=document.createElement("a");',
+    '  a.href="#";a.style.fontWeight="700";a.style.color="#0a3d62";a.textContent="View Details";',
+    '  a.addEventListener("click",function(e){e.preventDefault();parent.showDetailFromMap(p.id);});',
+    '  popup.appendChild(document.createElement("br"));',
+    '  popup.appendChild(a);',
+    '  L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92})',
+    '  .addTo(map).bindPopup(popup,{maxWidth:220});',
+    '});',
+    'map.on("click",function(e){parent.onMapFrameClick(e.latlng.lat,e.latlng.lng);});',
+    'window.flyTo=function(lat,lng,z){map.flyTo([lat,lng],z||14);};',
+    'window.setView=function(lat,lng,z){map.setView([lat,lng],z||10);};',
+    'window.refreshPins=function(ps){',
+    '  map.eachLayer(function(l){if(l instanceof L.CircleMarker)map.removeLayer(l);});',
+    '  ps.forEach(function(p){',
+    '    var popup=document.createElement("div");',
+    '    popup.innerHTML="<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.owner?"<br>By "+p.owner:"");',
+    '    var a=document.createElement("a");',
+    '    a.href="#";a.style.fontWeight="700";a.style.color="#0a3d62";a.textContent="View Details";',
+    '    a.addEventListener("click",function(e){e.preventDefault();parent.showDetailFromMap(p.id);});',
+    '    popup.appendChild(document.createElement("br"));popup.appendChild(a);',
+    '    L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92})',
+    '    .addTo(map).bindPopup(popup,{maxWidth:220});',
+    '  });',
+    '};',
+    'setTimeout(function(){map.invalidateSize();},150);'
+  ].join('\n');
+  return '<!DOCTYPE html><html><head>'
+    +'<meta charset="UTF-8">'
+    +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+    +'<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>'
+    +'<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>'
+    +'<style>*{margin:0;padding:0}html,body,#m{width:100%;height:100vh;overflow:hidden}'
+    +'.leaflet-popup-content{margin:8px 10px;font-family:sans-serif;font-size:13px}<\/style>'
+    +'<\/head><body><div id="m"><\/div>'
+    +'<script>'+iframeJS+'<\/script>'
+    +'<\/body><\/html>';
 }
 
 function initMap(){
@@ -2244,32 +2309,7 @@ window.refreshMapPins=function(){
 };
 
 // Also rebuild mapHTML to support custom border colors on pins
-var _origBuildMapHTML=buildMapHTML;
-buildMapHTML=function(){
-  var leads=window._leads||[];
-  var users=window._users||[];
-  var myUid=myId();
-  var filtered=leads.filter(function(l){
-    if(!l.lat||!l.lng)return false;
-    if(mapScope==='mine')return l.userId===myUid;
-    if(mapScope==='other')return l.userId!==myUid;
-    return true;
-  });
-  var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
-  var pins=filtered.map(function(l){
-    var owner=users.find(function(u){return u.id===l.userId;});
-    var col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
-    var borderCol=mapScope==='all'&&owner?owner.color:'#ffffff';
-    var biz=(l.bizName||'Unnamed').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
-    var addr=(l.address||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;');
-    return {lat:l.lat,lng:l.lng,col:col,borderCol:borderCol,r:l.starred?13:10,id:l.id,biz:biz,addr:addr,temp:l.temp||'',owner:owner?owner.name:''};
-  });
-  var tileUrl=satOn?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-  var tileAttr=satOn?'Tiles &copy; Esri':'&copy; OpenStreetMap';
-  var labelsLine=satOn?'L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",{attribution:"&copy; CARTO",subdomains:"abcd",maxZoom:19}).addTo(map);':'';
-  var pinsJson=JSON.stringify(pins);
-  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script><style>*{margin:0;padding:0}html,body,#m{width:100%;height:100vh;overflow:hidden}.leaflet-popup-content{margin:10px 12px;font-family:sans-serif;font-size:13px}</style></head><body><div id="m"></div><script>var map=L.map("m",{center:[40.8,-122.3],zoom:10,minZoom:7,maxZoom:19,maxBounds:[[39.5,-124.5],[42.1,-120.0]],maxBoundsViscosity:0.85});L.tileLayer("'+tileUrl+'",{attribution:"'+tileAttr+'",maxZoom:19}).addTo(map);'+labelsLine+'var pins='+pinsJson+';pins.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.temp?"<br><b style=\'color:"+p.col+"\'>"+p.temp+" lead</b>":"")+(p.owner?"<br>By "+p.owner:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\""+p.id+"\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details</a>",{maxWidth:220});});map.on("click",function(e){parent.onMapFrameClick(e.latlng.lat,e.latlng.lng);});window.flyTo=function(lat,lng,z){map.flyTo([lat,lng],z||14);};window.refreshPins=function(ps){map.eachLayer(function(l){if(l instanceof L.CircleMarker)map.removeLayer(l);});ps.forEach(function(p){var mk=L.circleMarker([p.lat,p.lng],{radius:p.r,color:p.borderCol||"#fff",weight:3,fillColor:p.col,fillOpacity:0.92}).addTo(map);mk.bindPopup("<b>"+p.biz+"</b>"+(p.addr?"<br>"+p.addr:"")+(p.owner?"<br>By "+p.owner:"")+"<br><a href=\'#\' onclick=\'parent.showDetailFromMap(\""+p.id+"\");return false;\' style=\'font-weight:700;color:#0a3d62\'>View Details</a>",{maxWidth:220});});};map.invalidateSize();<\/script></body></html>';
-};
+;
 
 // ── BATCH LOOKUP — HYBRID: FREE OSM FIRST, CLAUDE ONLY FOR MISSES ────
 var batchQueue=[],batchIndex=0,batchRunning=false;
