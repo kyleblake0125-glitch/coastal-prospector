@@ -642,9 +642,18 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 </div>
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-  Visit Notes (manual)
+  Visit Notes
 </div>
-<div class="field"><label>Or type notes manually</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
+<div style="display:flex;gap:8px;margin-bottom:8px">
+  <div style="flex:1"><label>Visit Date</label>
+    <input type="date" id="f_visitdate" style="background:var(--surf);color:var(--txt)">
+  </div>
+  <div style="flex:1"><label>Visit Time</label>
+    <input type="time" id="f_visittime" style="background:var(--surf);color:var(--txt)">
+  </div>
+</div>
+<div style="font-size:11px;color:var(--txt2);margin-bottom:8px">Leave blank for right now — or set a past date to log a retroactive visit.</div>
+<div class="field"><label>Notes</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
 </div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="saveLead()">✓ Save Prospect</button></div></div></div>
 
 <script type="module">
@@ -967,15 +976,54 @@ function renderDetail(id){
     });
   }
   else h+='<div style="font-size:13px;color:var(--txt2)">No visits yet</div>';
-  h+='<div class="divider"></div><div style="font-weight:700;font-size:13px;margin-bottom:7px">Log New Visit Note</div><textarea id="addNoteT" placeholder="Notes for this visit…" style="width:100%;padding:9px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);min-height:66px;background:var(--bg);color:var(--txt)"></textarea><button class="btn btn-primary btn-sm" style="margin-top:8px" onclick="addVisit(\''+id+'\')">+ Log Visit</button></div></div>';
-  h+='<div style="margin-bottom:12px"><button class="btn btn-out" style="width:100%" onclick="goBack()">← Back to Leads</button></div>';
+  h+='<div class="divider"></div>'
+    +'<div style="font-weight:700;font-size:13px;margin-bottom:9px">Log Visit Note</div>'
+    +'<div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--rsm);padding:10px;margin-bottom:9px">'
+    +'<div style="font-size:11px;color:var(--txt2);margin-bottom:8px">Defaults to right now — change date/time to log a past visit.</div>'
+    +'<div style="display:flex;gap:8px;margin-bottom:8px">'
+    +'<div style="flex:1"><label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px">Date</label>'
+    +'<input type="date" id="addNoteDate" style="width:100%;padding:8px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:13px;font-family:var(--ff);background:var(--surf);color:var(--txt)"></div>'
+    +'<div style="flex:1"><label style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px">Time</label>'
+    +'<input type="time" id="addNoteTime" style="width:100%;padding:8px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:13px;font-family:var(--ff);background:var(--surf);color:var(--txt)"></div>'
+    +'</div>'
+    +'<textarea id="addNoteT" placeholder="Notes… (optional)" style="width:100%;padding:9px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);min-height:60px;background:var(--surf);color:var(--txt)"></textarea>'
+    +'</div>'
+    +'<div style="display:flex;gap:8px">'
+    +'<button class="btn btn-primary btn-sm" style="flex:1" onclick="addVisit(\''+id+'\')" >+ Log Visit</button>'
+    +'<button class="btn btn-out btn-sm" style="flex-shrink:0;font-size:11px" onclick="setVisitDateToNow()">Reset to Now</button>'
+    +'</div></div></div>';
   document.getElementById('detailContent').innerHTML=h;
+  // Pre-fill visit date/time to now
+  setTimeout(setVisitDateToNow, 50);
 }
 
 function addVisit(id){
-  const t=document.getElementById('addNoteT').value.trim();
+  const noteText=document.getElementById('addNoteT').value.trim();
   const l=(window._leads||[]).find(x=>x.id===id);if(!l)return;
-  window.fbUpdateLead(id,{visits:[...(l.visits||[]),{date:now(),notes:t}]}).then(function(){renderDetail(id);});
+  const dateEl=document.getElementById('addNoteDate');
+  const timeEl=document.getElementById('addNoteTime');
+  var visitDate;
+  if(dateEl&&dateEl.value){
+    var t=timeEl&&timeEl.value?timeEl.value:'12:00';
+    visitDate=new Date(dateEl.value+'T'+t+':00').toISOString();
+  } else {
+    visitDate=now();
+  }
+  const visits=[...(l.visits||[]),{date:visitDate,notes:noteText}];
+  const lastVisitAt=visits.reduce(function(latest,v){return v.date>latest?v.date:latest;},visitDate);
+  window.fbUpdateLead(id,{visits:visits,lastVisitAt:lastVisitAt}).then(function(){
+    renderDetail(id);
+    setTimeout(setVisitDateToNow,50);
+  });
+}
+
+function setVisitDateToNow(){
+  var dateEl=document.getElementById('addNoteDate');
+  var timeEl=document.getElementById('addNoteTime');
+  if(!dateEl)return;
+  var n=new Date();
+  dateEl.value=n.toISOString().split('T')[0];
+  if(timeEl)timeEl.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
 function delLead(id){if(!confirm('Delete this prospect?'))return;window.fbDeleteLead(id);goBack();}
 function toggleStar(id){const l=(window._leads||[]).find(x=>x.id===id);if(!l)return;window.fbUpdateLead(id,{starred:!l.starred}).then(function(){renderDetail(id);});}
@@ -997,7 +1045,7 @@ function openEditLead(id){
   clearForm();populateForm(l);openModal('leadModal');
 }
 function clearForm(){
-  ['f_biz','f_addr','f_city','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
+  ['f_biz','f_addr','f_city','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees','f_visitdate','f_visittime'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
   document.getElementById('f_status').value='';document.getElementById('f_lease').value='';document.getElementById('f_biztype').value='';
   document.getElementById('f_starred').checked=false;
   document.querySelectorAll('.topt').forEach(function(e){e.classList.remove('sel');});
@@ -1061,9 +1109,16 @@ function saveLead(){
     delete data.createdAt;
     window.fbSaveLead(data,editId);
   } else {
-    const n=now();
-    data.visits=noteText?[{date:n,notes:noteText}]:[];
-    data.lastVisitAt=n;
+    var visitD=now();
+    var fvd=document.getElementById('f_visitdate');
+    var fvt=document.getElementById('f_visittime');
+    if(fvd&&fvd.value){
+      var vt=fvt&&fvt.value?fvt.value:'12:00';
+      visitD=new Date(fvd.value+'T'+vt+':00').toISOString();
+    }
+    data.visits=noteText?[{date:visitD,notes:noteText}]:[];
+    data.lastVisitAt=visitD;
+    data.createdAt=visitD; // createdAt = first visit time
     window.fbSaveLead(data,null);
   }
   pendingLatLng=null;closeModal('leadModal');showScreen('leads');
