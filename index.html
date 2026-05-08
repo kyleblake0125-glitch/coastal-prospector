@@ -490,7 +490,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   <div id="batchStatus" style="font-size:13px;color:var(--txt2);margin-bottom:10px"></div>
   <div id="batchResults" style="max-height:300px;overflow-y:auto"></div>
   <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.6;background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:9px 12px">
-    💡 <strong>How it works:</strong> First tries free map lookup (0 credits). Only sends businesses it can't find that way to Claude (1 credit each). Shows you the cost before running Claude.
+    💡 <strong>How it works:</strong> Searches OpenStreetMap's free database for every lead missing an address. Finds most businesses automatically (0 credits). For the ones it can't find, you can enter the address manually right here. For the best AI-powered lookup, use "Ask Claude to Find This Business" on the individual lead's edit page.
   </div>
   <button class="btn btn-primary btn-sm" onclick="startBatchLookup()" id="batchBtn">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -1563,131 +1563,273 @@ function importHubspot(){
     const text=e.target.result;
     const lines=text.split('\n').filter(function(l){return l.trim();});
     if(lines.length<2){alert('File appears empty or invalid.');return;}
-    const headers=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim().toLowerCase();});
+
+    // Parse headers — handle BOM and quoted headers
+    const rawHeaders=lines[0].replace(/^\uFEFF/,'');
+    const headers=rawHeaders.split(',').map(function(h){return h.replace(/"/g,'').trim().toLowerCase();});
+
     const col=function(names){
       for(var i=0;i<names.length;i++){
-        var idx=headers.indexOf(names[i].toLowerCase());
-        if(idx>=0)return idx;
+        var ix=headers.indexOf(names[i].toLowerCase());
+        if(ix>=0)return ix;
       }
       return -1;
     };
-    const iName=col(['company name','company','name','account name']);
-    const iAddr=col(['address','street address','mailing address']);
-    const iCity=col(['city','mailing city']);
-    const iState=col(['state','state/region','mailing state']);
-    const iZip=col(['zip','postal code','zip code','mailing postal code']);
-    const iPhone=col(['phone','phone number','office phone']);
-    const iEmail=col(['email','email address','company domain name']);
-    const iNotes=col(['notes','description']);
-    const iWebsite=col(['website','domain','company domain name','website url']);
-    const iHsId=col(['record id','company id','hubspot id','hs_object_id']);
-    if(iName<0){alert('Could not find a "Company Name" column. Make sure you exported Companies from HubSpot.');return;}
 
-    // Build lookup of existing leads for duplicate detection
-    // Normalize names: lowercase, strip punctuation, collapse spaces
+    // Map ALL known HubSpot column name variations
+    const iName   = col(['company name','company','name','account name']);
+    const iHsId   = col(['record id','company id','hubspot id','hs_object_id']);
+    const iPhone  = col(['phone number','phone','office phone']);
+    const iEmail  = col(['email','email address']);
+    const iAddr   = col(['address','street address','mailing address','street']);
+    const iCity   = col(['city','mailing city']);
+    const iState  = col(['state','state/region','mailing state']);
+    const iZip    = col(['zip','postal code','zip code','mailing postal code']);
+    const iIndustry = col(['industry','type','business type']);
+    const iWebsite  = col(['website','domain','website url','company domain name']);
+    const iNotes    = col(['notes','description','about us']);
+    const iOwner    = col(['company owner','owner','assigned to','hubspot owner']);
+
+    if(iName<0){alert('Could not find a Company Name column.\n\nHeaders found:\n'+headers.join(', '));return;}
+
+    // Industry → our bizType mapping
+    const industryMap={
+      'accounting':'Accounting / Finance','banking':'Accounting / Finance',
+      'financial services':'Accounting / Finance','insurance':'Insurance',
+      'real estate':'Real Estate','hospital & health care':'Medical / Dental',
+      'health, wellness and fitness':'Medical / Dental','medical practice':'Medical / Dental',
+      'legal services':'Law Office','law practice':'Law Office',
+      'education management':'Education','primary/secondary education':'Education',
+      'higher education':'Education','government administration':'Government',
+      'automotive':'Auto / Dealership','construction':'Construction',
+      'retail':'Retail','restaurants':'Restaurant / Food',
+      'food & beverages':'Restaurant / Food',
+      'non-profit organization management':'Non-Profit',
+      'individual & family services':'Non-Profit',
+      'civic & social organization':'Non-Profit',
+      'manufacturing':'Manufacturing','industrial automation':'Manufacturing',
+      'electrical/electronic manufacturing':'Manufacturing',
+    };
+
     function normName(s){return(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();}
-    var existingNames=new Set();
-    var existingHsIds=new Set();
-    (window._leads||[]).forEach(function(l){
-      if(l.bizName)existingNames.add(normName(l.bizName));
-      if(l.hubspotId)existingHsIds.add(l.hubspotId.toString().trim());
-    });
-
-    var imported=0,skipped=0,updated=0;
-    var promises=[];
-    var skippedNames=[];
-
-    for(var i=1;i<lines.length;i++){
-      var cells=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||lines[i].split(',');
-      var get=function(idx){return idx>=0&&cells[idx]?cells[idx].replace(/^"|"$/g,'').trim():''};
-      var bizName=get(iName);
-      if(!bizName)continue;
-
-      var hsId=get(iHsId);
-
-      // ── Duplicate check 1: HubSpot ID match (exact) ──────────────
-      if(hsId&&existingHsIds.has(hsId)){
-        skipped++;
-        skippedNames.push(bizName+' (already in app by HubSpot ID)');
-        continue;
-      }
-
-      // ── Duplicate check 2: Name similarity ───────────────────────
-      var norm=normName(bizName);
-      if(existingNames.has(norm)){
-        skipped++;
-        skippedNames.push(bizName+' (name already exists)');
-        continue;
-      }
-
-      // ── New lead — import it ──────────────────────────────────────
-      var addrParts=[get(iAddr),get(iCity),(get(iState)+' '+get(iZip)).trim()].filter(function(x){return x.trim();});
-      var address=addrParts.join(', ').trim();
-      var phoneVal=get(iPhone);
-      var emailVal=get(iEmail);
-      var websiteVal=get(iWebsite);
-      var phoneEmails=[];
-      if(phoneVal)phoneEmails.push({type:'Phone',label:'Office',value:phoneVal});
-      if(emailVal&&emailVal.includes('@'))phoneEmails.push({type:'Email',label:'Company',value:emailVal});
-      var notes=get(iNotes);
-      var data={
-        bizName:bizName,address:address,
-        website:websiteVal?websiteVal.replace(/^https?:\/\//i,''):'',
-        hubspotId:hsId||'',
-        bizType:'',employees:'',temp:'',status:'Prospecting',
-        followupDate:'',starred:false,
-        contacts:[],needContacts:[],
-        phoneEmails:phoneEmails,
-        printerCount:'',totalPages:'',printers:[],
-        hasLease:'',leaseend:'',leaseco:'',leaseamt:'',
-        customLabel:'Current Client',
-        userId:myId(),lat:null,lng:null,pinColor:'#2471a3',
-        visits:notes?[{date:now(),notes:'Imported from HubSpot: '+notes}]:[]
-      };
-      // Auto-geocode the address if we have one
-      if(address){
-        (function(d,addr){
-          fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1&countrycodes=us',
-            {headers:{'Accept-Language':'en-US,en'}})
-          .then(function(r){return r.json();})
-          .then(function(res){
-            if(res&&res[0]){
-              d.lat=parseFloat(res[0].lat);
-              d.lng=parseFloat(res[0].lon);
-            }
-            promises.push(window.fbSaveLead(d,null));
-          }).catch(function(){
-            promises.push(window.fbSaveLead(d,null));
-          });
-        })(data,address);
-      } else {
-        promises.push(window.fbSaveLead(data,null));
-      }
-      existingNames.add(norm);
-      if(hsId)existingHsIds.add(hsId);
-      imported++;
+    function cleanPhone(p){return(p||'').replace(/^\+1/,'').replace(/[^0-9]/g,'').replace(/^(\d{3})(\d{3})(\d{4})$/,'($1) $2-$3')||p.trim();}
+    function cleanCity(c){
+      // Handle messy city values like "Redding, Mt. Shasta & Red Bluff" or "REdding"
+      if(!c)return'';
+      var first=c.split(/[,&]/)[0].trim();
+      return first.charAt(0).toUpperCase()+first.slice(1).toLowerCase().replace(/\bredding\b/i,'Redding');
     }
 
-    // Wait a moment for geocoding fetches to queue up, then save all
-    setTimeout(function(){
-    Promise.all(promises).then(function(){
-      var msg='✅ Import complete!\n\n'+
-        '• '+imported+' new companies added\n'+
-        '• '+skipped+' skipped (already in app)';
-      if(skippedNames.length&&skippedNames.length<=10){
-        msg+='\n\nSkipped:\n'+skippedNames.map(function(n){return'  - '+n;}).join('\n');
-      } else if(skippedNames.length>10){
-        msg+='\n\n('+skippedNames.length+' total skipped)';
-      }
-      var resultEl=document.getElementById('importResult');
-      if(resultEl){
-        resultEl.style.color=imported>0?'var(--green)':'var(--txt2)';
-        resultEl.textContent=imported+' added, '+skipped+' skipped (already existed)';
-      }
-      alert(msg);
-      fileInput.value='';
+    // Build lookup of existing leads
+    var existingByHsId={};
+    var existingByName={};
+    (window._leads||[]).forEach(function(l){
+      if(l.hubspotId)existingByHsId[l.hubspotId.toString().trim()]=l;
+      if(l.bizName)existingByName[normName(l.bizName)]=l;
     });
-    },200); // small delay to let geocoding requests queue
+
+    var imported=0,updated=0,skipped=0;
+    var savePromises=[];
+
+    function parseRow(line){
+      // Proper RFC 4180 CSV parser
+      var result=[];
+      var cur='';
+      var inQ=false;
+      var i=0;
+      while(i<line.length){
+        var ch=line[i];
+        if(inQ){
+          if(ch==='"'){
+            // Check for escaped quote ""
+            if(i+1<line.length&&line[i+1]==='"'){
+              cur+='"';
+              i+=2;
+            } else {
+              // End of quoted field
+              inQ=false;
+              i++;
+            }
+          } else {
+            cur+=ch;
+            i++;
+          }
+        } else {
+          if(ch==='"'){
+            inQ=true;
+            i++;
+          } else if(ch===','){
+            result.push(cur);
+            cur='';
+            i++;
+          } else if(ch==='\r'){
+            i++; // skip carriage return
+          } else {
+            cur+=ch;
+            i++;
+          }
+        }
+      }
+      result.push(cur);
+      return result;
+    }
+
+    function g(cells,ix){return ix>=0&&cells[ix]?cells[ix].replace(/^"|"$/g,'').trim():'';}
+
+    for(var i=1;i<lines.length;i++){
+      var cells=parseRow(lines[i]);
+      var bizName=g(cells,iName);
+      if(!bizName)continue;
+
+      var hsId=g(cells,iHsId);
+      var norm=normName(bizName);
+      var rawPhone=g(cells,iPhone);
+      var phone=rawPhone?cleanPhone(rawPhone):'';
+      var email=g(cells,iEmail);
+      var streetAddr=g(cells,iAddr);
+      var city=cleanCity(g(cells,iCity));
+      var state=g(cells,iState)||'CA';
+      var zip=g(cells,iZip);
+      var industry=g(cells,iIndustry);
+      var website=g(cells,iWebsite);
+      var notes=g(cells,iNotes);
+
+      // Build best address we can from available data
+      var address='';
+      if(streetAddr){
+        address=[streetAddr,city,(state+' '+zip).trim()].filter(Boolean).join(', ');
+      } else if(city){
+        address=city+(state&&state!=='CA'?', '+state:', CA');
+      }
+
+      // Map industry
+      var bizType=industryMap[(industry||'').toLowerCase()]||
+        (industry?'Other':'');
+
+      // Check if exists
+      var existing=null;
+      if(hsId&&existingByHsId[hsId])existing=existingByHsId[hsId];
+      else if(existingByName[norm])existing=existingByName[norm];
+
+      if(existing){
+        var updates={};
+
+        // Update address if CSV has one AND existing doesn't have a real street address
+        var existAddr=(existing.address||'').trim();
+        var hasRealAddr=existAddr.length>10&&/\d/.test(existAddr); // real address has a number
+        if(address&&(!hasRealAddr||existAddr.length<address.length)){
+          updates.address=address;
+        }
+
+        // Fill in missing HubSpot ID
+        if(!existing.hubspotId&&hsId)updates.hubspotId=hsId;
+
+        // Fill in missing phone
+        if(phone){
+          var hasPhone=(existing.phoneEmails||[]).some(function(p){
+            return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
+          });
+          if(!hasPhone){
+            updates.phoneEmails=[...(existing.phoneEmails||[]),{type:'Phone',label:'Office',value:phone}];
+          }
+        }
+
+        // Fill in missing email
+        if(email&&email.includes('@')){
+          var hasEmail=(existing.phoneEmails||[]).some(function(p){
+            return p.type&&p.type.includes('Email')&&p.value;
+          });
+          if(!hasEmail){
+            var existPE=updates.phoneEmails||(existing.phoneEmails||[]);
+            updates.phoneEmails=[...existPE,{type:'Email',label:'Company',value:email}];
+          }
+        }
+
+        // Fill in missing bizType
+        if(!existing.bizType&&bizType)updates.bizType=bizType;
+
+        // Fill in missing website
+        if(!existing.website&&website)updates.website=website.replace(/^https?:\/\//i,'');
+
+        if(Object.keys(updates).length>0){
+          // Geocode if we're adding/improving an address
+          var addrToGeocode=updates.address||null;
+          if(addrToGeocode&&!existing.lat){
+            (function(lid,upd,addr){
+              fetch('https://nominatim.openstreetmap.org/search?format=json&q='+
+                encodeURIComponent(addr+', California')+'&limit=1&countrycodes=us',
+                {headers:{'Accept-Language':'en-US,en'}})
+              .then(function(r){return r.json();})
+              .then(function(res){
+                if(res&&res[0]){upd.lat=parseFloat(res[0].lat);upd.lng=parseFloat(res[0].lon);}
+                savePromises.push(window.fbUpdateLead(lid,upd));
+              }).catch(function(){savePromises.push(window.fbUpdateLead(lid,upd));});
+            })(existing.id,updates,addrToGeocode);
+          } else {
+            savePromises.push(window.fbUpdateLead(existing.id,updates));
+          }
+          updated++;
+        } else {
+          skipped++;
+        }
+        existingByName[norm]=existing;
+        if(hsId)existingByHsId[hsId]=existing;
+
+      } else {
+        // New lead
+        var phoneEmails=[];
+        if(phone)phoneEmails.push({type:'Phone',label:'Office',value:phone});
+        if(email&&email.includes('@'))phoneEmails.push({type:'Email',label:'Company',value:email});
+        var data={
+          bizName:bizName,address:address,bizType:bizType,
+          website:website?website.replace(/^https?:\/\//i,''):'',
+          hubspotId:hsId||'',employees:'',temp:'',status:'Prospecting',
+          followupDate:'',starred:false,contacts:[],needContacts:[],
+          phoneEmails:phoneEmails,printerCount:'',totalPages:'',printers:[],
+          hasLease:'',leaseend:'',leaseco:'',leaseamt:'',
+          customLabel:'Current Client',
+          userId:myId(),lat:null,lng:null,pinColor:'#2471a3',
+          visits:notes?[{date:now(),notes:'Imported from HubSpot: '+notes}]:[]
+        };
+        if(address){
+          (function(d,addr){
+            fetch('https://nominatim.openstreetmap.org/search?format=json&q='+
+              encodeURIComponent(addr+', California')+'&limit=1&countrycodes=us',
+              {headers:{'Accept-Language':'en-US,en'}})
+            .then(function(r){return r.json();})
+            .then(function(res){
+              if(res&&res[0]){d.lat=parseFloat(res[0].lat);d.lng=parseFloat(res[0].lon);}
+              savePromises.push(window.fbSaveLead(d,null));
+            }).catch(function(){savePromises.push(window.fbSaveLead(d,null));});
+          })(data,address);
+        } else {
+          savePromises.push(window.fbSaveLead(data,null));
+        }
+        existingByName[norm]=data;
+        if(hsId)existingByHsId[hsId]=data;
+        imported++;
+      }
+    }
+
+    // Wait for geocoding fetches to complete then save
+    var waitTime=Math.min(300+(imported+updated)*50,3000);
+    setTimeout(function(){
+      Promise.all(savePromises).then(function(){
+        var msg='Import complete!\n\n'+
+          (imported?imported+' new companies added\n':'')+
+          (updated?updated+' existing companies updated (address, phone, type filled in)\n':'')+
+          (skipped?skipped+' already complete (no changes needed)':'');
+        var resultEl=document.getElementById('importResult');
+        if(resultEl){
+          resultEl.style.color='var(--green)';
+          resultEl.textContent=(imported?imported+' added  ':'')+
+            (updated?updated+' updated  ':'')+
+            (skipped?skipped+' unchanged':'');
+        }
+        alert(msg||'Nothing to import.');
+        fileInput.value='';
+      });
+    },waitTime);
   };
   reader.readAsText(file);
 }
@@ -2894,11 +3036,13 @@ function finishOsmPhase(){
     return;
   }
   // Show user what Claude will cost before starting
-  document.getElementById('batchStatus').innerHTML=
-    '✅ Free lookup done: <strong>'+batchOsmHits+'</strong> found free. '+
-    '<strong>'+claudeCount+'</strong> need Claude (~'+claudeCount+' credit'+(claudeCount>1?'s':'')+').'+
-    ' <button onclick="startClaudePhase()" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:5px 12px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer;margin-left:6px">Run Claude Lookup →</button>'+
-    ' <button onclick="cancelBatch()" style="background:none;color:var(--txt2);border:1px solid var(--bord);border-radius:var(--rsm);padding:5px 10px;font-size:12px;font-family:var(--ff);cursor:pointer;margin-left:4px">Skip</button>';
+  // Claude API is blocked by CORS on GitHub Pages - show manual entry instead
+  var foundMsg='Free map lookup done: '+batchOsmHits+' addresses found automatically. ';
+  var missMsg=claudeCount?claudeCount+' not found - enter addresses manually below.':'All done!';
+  document.getElementById('batchStatus').textContent=foundMsg+missMsg;
+  if(claudeCount){
+    batchClaudeNeeded.forEach(function(l){showBatchResult(l,null,'Not found via map — enter manually');});
+  }
   document.getElementById('batchBtn').disabled=false;
   document.getElementById('batchBtn').textContent='Start Batch Lookup';
 }
@@ -2909,66 +3053,20 @@ function cancelBatch(){
 }
 
 function startClaudePhase(){
-  if(!checkUsageLimit())return;
-  batchIndex=0;batchRunning=true;
-  document.getElementById('batchStatus').textContent='Step 2 of 2: Claude is looking up '+batchClaudeNeeded.length+' remaining prospects…';
-  processClaudeNext();
+  // Claude direct browser calls are blocked by CORS on GitHub Pages
+  // Show manual entry option instead
+  var claudeCount=batchClaudeNeeded.length;
+  document.getElementById('batchStatus').textContent=claudeCount+' businesses could not be found via map lookup. Enter addresses manually below.';
+  batchClaudeNeeded.forEach(function(l){
+    showBatchResult(l,null,'Not found — enter address manually');
+  });
+  document.getElementById('batchBtn').disabled=false;
+  document.getElementById('batchBtn').textContent='Start Batch Lookup';
 }
 
 function processClaudeNext(){
-  if(batchIndex>=batchClaudeNeeded.length||!batchRunning){
-    batchRunning=false;
-    document.getElementById('batchBtn').disabled=false;
-    document.getElementById('batchBtn').textContent='Start Batch Lookup';
-    document.getElementById('batchStatus').textContent=
-      'All done! '+batchOsmHits+' found free, '+batchIndex+' looked up via Claude. Review results below.';
-    return;
-  }
-  var l=batchClaudeNeeded[batchIndex];
-  batchIndex++;
-  var akey=localStorage.getItem('cbs_akey')||'';
-  if(!akey){
-    showBatchResult(l,null,'No API key set');
-    setTimeout(processClaudeNext,100);
-    return;
-  }
-  if(!checkUsageLimit()){batchRunning=false;document.getElementById('batchBtn').textContent='Start Batch Lookup';return;}
-  var statusEl=document.getElementById('batchStatus');
-  if(statusEl)statusEl.textContent='Claude looking up '+batchIndex+' of '+batchClaudeNeeded.length+': '+(l.bizName||'business')+'…';
-  var needsAddr=!l.address||l.address.trim().length<=5;
-  var needsPhone=!(l.phoneEmails||[]).some(function(p){
-    return p.type&&(p.type.includes('Phone')||p.type.includes('Cell'))&&p.value;
-  });
-  var what=[];
-  if(needsAddr)what.push('address');
-  if(needsPhone)what.push('phone number');
-  var prompt='Find the '+what.join(' and ')+' for this business: "'+(l.bizName||'').replace(/"/g,'\"')+'"'+
-    (l.address?' near '+l.address:' in Northern California, likely Redding/Chico/Red Bluff area')+
-    '. Return ONLY this JSON (no other text): {"address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","found":true} or {"found":false} if not found.';
-  claudeApiFetch({
-    model:'claude-sonnet-4-20250514',
-    max_tokens:300,
-    tools:[{type:'web_search_20250305',name:'web_search'}],
-    messages:[{role:'user',content:prompt}]
-  },akey)
-  .then(function(data){
-    var text='';
-    if(data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
-    if(data.error){showBatchResult(l,null,'API error: '+data.error.message);setTimeout(processClaudeNext,1200);return;}
-    incrementUsage();
-    var info=null;
-    try{
-      var clean=text.replace(/```json|```/g,'').trim();
-      var m=clean.match(/\{[\s\S]*?\}/);
-      if(m)info=JSON.parse(m[0]);
-    }catch(e){info=null;}
-    showBatchResult(l,(info&&info.found)?info:null,(!info||!info.found)?'Not found online':null);
-    setTimeout(processClaudeNext,1500);
-  })
-  .catch(function(err){
-    showBatchResult(l,null,'Error: '+(err.message||'Failed to fetch'));
-    setTimeout(processClaudeNext,2500);
-  });
+  // Kept for compatibility — not used (CORS blocks direct Claude API from GitHub Pages)
+  startClaudePhase();
 }
 
 function showBatchResult(l,info,errorMsg){
@@ -2977,10 +3075,37 @@ function showBatchResult(l,info,errorMsg){
   var div=document.createElement('div');
   div.style.cssText='background:var(--surf);border:1px solid var(--bord);border-radius:var(--rsm);padding:11px;margin-bottom:9px';
   if(!info){
-    div.style.opacity='0.6';
-    var msg=errorMsg?('⚠️ '+errorMsg):'❌ Not found online';
+    var entryId='manual_'+l.id;
     div.innerHTML='<div style="font-weight:700;font-size:13px">'+escHtml(l.bizName||'Unknown')+'</div>'+
-      '<div style="font-size:12px;color:var(--txth);margin-top:3px">'+escHtml(msg)+'</div>';
+      '<div style="font-size:11px;color:var(--txth);margin-top:2px;margin-bottom:8px">'+(errorMsg||'Not found via free map search')+'</div>'+
+      '<input type="text" id="'+entryId+'" placeholder="Enter address manually e.g. 123 Main St, Redding, CA" style="width:100%;padding:8px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:13px;font-family:var(--ff);background:var(--bg);color:var(--txt);margin-bottom:7px">';
+    var saveBtn=document.createElement('button');
+    saveBtn.textContent='Save Address';
+    saveBtn.style.cssText='background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:6px 14px;font-size:12px;font-weight:700;font-family:var(--ff);cursor:pointer;width:100%';
+    saveBtn.addEventListener('click',function(){
+      var addr=document.getElementById(entryId).value.trim();
+      if(!addr){alert('Enter an address first.');return;}
+      // Geocode and save
+      fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1&countrycodes=us',
+        {headers:{'Accept-Language':'en-US,en'}})
+      .then(function(r){return r.json();})
+      .then(function(res){
+        var updates={address:addr};
+        if(res&&res[0]){updates.lat=parseFloat(res[0].lat);updates.lng=parseFloat(res[0].lon);}
+        window.fbUpdateLead(l.id,updates);
+        div.style.opacity='0.45';
+        saveBtn.textContent='✅ Saved';
+        saveBtn.disabled=true;
+        showToast('Address saved for '+l.bizName);
+        refreshMapPins();
+      }).catch(function(){
+        window.fbUpdateLead(l.id,{address:addr});
+        div.style.opacity='0.45';
+        saveBtn.textContent='✅ Saved (not geocoded)';
+        saveBtn.disabled=true;
+      });
+    });
+    div.appendChild(saveBtn);
     container.appendChild(div);
     return;
   }
