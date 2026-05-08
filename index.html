@@ -403,6 +403,13 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   <div style="font-size:12px;color:var(--txt2);line-height:1.5">Get your key at <strong>console.anthropic.com</strong> → API Keys → Create Key.</div>
   <div id="anthropicKeyStatus" style="margin-top:8px;font-size:12px;font-weight:600"></div>
 </div>
+<div class="exp-card" style="opacity:.7">
+  <h3>🔗 HubSpot Worker URL <span style="font-size:11px;font-weight:400;color:var(--txt2)">(coming soon)</span></h3>
+  <p>Once your Cloudflare Worker is deployed, paste its URL here to enable direct HubSpot sync from each lead's profile.</p>
+  <div class="field"><label>Worker URL</label>
+    <input type="text" id="workerUrl" placeholder="https://your-worker.workers.dev" oninput="saveWorkerUrl()" style="font-size:13px">
+  </div>
+</div>
 
 <div class="sec">Switch Profile</div>
 <div class="card" id="profileSwitcherCard"><div class="card-bd" id="profileSwitcherList"></div></div>
@@ -579,9 +586,22 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     <div class="addr-suggestions" id="addrSuggestions" style="display:none"></div>
   </div>
 </div>
+<div class="field"><label>Website</label>
+  <input type="text" id="f_website" placeholder="www.example.com" autocomplete="off" inputmode="url">
+</div>
 <div class="field2">
   <div><label>Business Type</label><select id="f_biztype" style="background:var(--surf);color:var(--txt)"><option value="">— Type —</option><option>Law Office</option><option>Medical / Dental</option><option>Accounting / Finance</option><option>Real Estate</option><option>Insurance</option><option>Manufacturing</option><option>Retail</option><option>Restaurant / Food</option><option>Education</option><option>Government</option><option>Non-Profit</option><option>Construction</option><option>Auto / Dealership</option><option>Other</option></select></div>
   <div><label>Est. # Employees</label><input type="number" id="f_employees" placeholder="0" min="0"></div>
+</div>
+<div id="hubspotIdRow" style="display:none">
+  <div class="field"><label style="color:var(--txth)">HubSpot Company ID</label>
+    <input type="text" id="f_hubspotId" placeholder="e.g. 12345678" style="color:var(--txt2);font-size:13px">
+  </div>
+</div>
+<div style="margin-bottom:11px">
+  <button type="button" onclick="toggleHubspotIdField()" style="background:none;border:none;color:var(--txth);font-size:11px;cursor:pointer;padding:0;font-family:var(--ff);text-decoration:underline">
+    + Link to existing HubSpot company
+  </button>
 </div>
 <div class="divider"></div>
 <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Lead Quality</div>
@@ -986,13 +1006,41 @@ function renderDetail(id){
   const isOwner=l.userId===myId();
   const owner=(window._users||[]).find(u=>u.id===l.userId);
   let h='<div class="dhdr"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:7px"><div class="dbiz">'+(l.starred?'⭐ ':'')+(l.bizName||'Unnamed Business')+'</div>'+(tc?'<span class="badge b-'+tc+'" style="flex-shrink:0">'+(tc==='hot'?'🔥':tc==='warm'?'🌤':tc==='cool'?'❄️':'🧊')+' '+tc.charAt(0).toUpperCase()+tc.slice(1)+'</span>':'')+'</div>'+(l.address?'<div class="dsub">📍 '+l.address+'</div>':'')+(l.bizType?'<div class="dsub">🏢 '+l.bizType+(l.employees?' · ~'+l.employees+' employees':'')+'</div>':'')+(l.status?'<div class="dsub">Status: '+l.status+'</div>':'')+(owner&&owner.id!==myId()?'<div class="dsub" style="margin-top:5px">👤 <strong style="color:'+owner.color+'">'+owner.name+'</strong>\'s lead</div>':'')+'</div>';
-  if(isOwner)h+='<div style="display:flex;gap:8px;margin-bottom:13px"><button class="btn btn-primary" style="flex:2" onclick="openEditLead(\''+id+'\')">✏️ Edit</button><button class="btn btn-out btn-sm" style="flex-shrink:0" onclick="toggleStar(\''+id+'\')">'+(l.starred?'★ Unstar':'☆ Star')+'</button><button class="btn btn-danger" onclick="delLead(\''+id+'\')">Delete</button></div>';
+  if(isOwner){
+  var eid=id;
+  var eBtns=document.createElement('div');
+  eBtns.style.cssText='display:flex;gap:8px;margin-bottom:9px';
+  var editB=document.createElement('button');editB.className='btn btn-primary';editB.style.flex='2';editB.textContent='✏️ Edit';editB.setAttribute('data-id',eid);editB.addEventListener('click',function(){openEditLead(this.getAttribute('data-id'));});eBtns.appendChild(editB);
+  var starB=document.createElement('button');starB.className='btn btn-out btn-sm';starB.style.flexShrink='0';starB.textContent=l.starred?'★ Unstar':'☆ Star';starB.setAttribute('data-id',eid);starB.addEventListener('click',function(){toggleStar(this.getAttribute('data-id'));});eBtns.appendChild(starB);
+  var delB=document.createElement('button');delB.className='btn btn-danger';delB.textContent='Delete';delB.setAttribute('data-id',eid);delB.addEventListener('click',function(){delLead(this.getAttribute('data-id'));});eBtns.appendChild(delB);
+  var eBtnContainer=document.createElement('div');eBtnContainer.id='detailOwnerBtns';eBtnContainer.setAttribute('data-id',eid);
+  // Serialize button row as HTML placeholder — will be materialized after innerHTML set
+  h+='<div id="detailOwnerBtns" data-id="'+eid+'" style="display:contents"></div>';
+  h+='<div style="display:flex;gap:8px;margin-bottom:9px">'
+    +'<button class="btn btn-primary" style="flex:2" data-id="'+eid+'" onclick="openEditLead(this.dataset.id)">✏️ Edit</button>'
+    +'<button class="btn btn-out btn-sm" style="flex-shrink:0" data-id="'+eid+'" onclick="toggleStar(this.dataset.id)">'+(l.starred?'★ Unstar':'☆ Star')+'</button>'
+    +'<button class="btn btn-danger" data-id="'+eid+'" onclick="delLead(this.dataset.id)">Delete</button>'
+    +'</div>';
+  // HubSpot + Website row
+  var hasWeb=!!(l.website);
+  var hasHs=!!(l.hubspotId);
+  h+='<div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">';
+  if(hasWeb){var wsUrl=l.website&&l.website.startsWith('http')?l.website:'https://'+(l.website||'');h+='<a href="'+wsUrl+'" target="_blank" class="btn btn-out btn-sm" style="flex:1;min-width:90px;text-decoration:none;justify-content:center">🌐 Website</a>';}
+  if(hasHs){h+='<a href="https://app.hubspot.com/contacts/'+encodeURIComponent(l.hubspotId)+'" target="_blank" class="btn btn-out btn-sm" style="flex:1;min-width:100px;text-decoration:none;justify-content:center;color:#f5721e;border-color:#f5721e">🟠 HubSpot</a>';}
+  h+='<button class="btn btn-out btn-sm" style="flex:1;min-width:100px;'+(hasHs?'':'border-style:dashed;opacity:.7;')+'" data-id="'+eid+'" onclick="syncToHubspot(this.dataset.id)">'+(hasHs?'🔄 Sync to HubSpot':'📤 Push to HubSpot')+'</button>';
+  h+='</div>';
+  }
   if(l.followupDate){
     var isOverdue=new Date(l.followupDate)<=new Date();
     h+='<div class="fubar" style="justify-content:space-between;flex-wrap:wrap;gap:8px">'+
       '<span>📅 Follow-up: <strong>'+fds(l.followupDate)+'</strong>'+(isOverdue?' <span style="color:var(--hot);font-weight:700">— OVERDUE</span>':'')+'</span>'+
       (isOwner?'<button onclick="markFollowedUp(\''+id+'\',event)" style="background:var(--green);color:#fff;border:none;border-radius:var(--rsm);padding:5px 11px;font-size:11px;font-weight:700;font-family:var(--ff);cursor:pointer;flex-shrink:0">✓ Mark Done</button>':'')+
       '</div>';
+  }
+  if(l.website){
+    var wsDisplay=l.website.replace(/^https?:\/\//i,'');
+    var wsUrl=l.website.startsWith('http')?l.website:'https://'+l.website;
+    h+='<div class="card"><div class="card-hd">Website</div><div class="card-bd"><a href="'+wsUrl+'" target="_blank" style="color:var(--cool);font-weight:600;font-size:14px;word-break:break-all">'+escHtml(wsDisplay)+'</a></div></div>';
   }
   if(l.phoneEmails&&l.phoneEmails.length){h+='<div class="card"><div class="card-hd">Phone &amp; Email</div><div class="card-bd">';l.phoneEmails.forEach(function(pe){const isP=pe.type&&(pe.type.includes('Phone')||pe.type.includes('Cell'));const isE=pe.type&&pe.type.includes('Email');h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-size:11px;color:var(--txt2)">'+(pe.label||pe.type)+'</div><a class="tap-link" href="'+(isP?'tel:':isE?'mailto:':'')+pe.value+'" style="font-size:15px;font-weight:700;text-decoration:none">'+(isP?'📞 ':isE?'✉️ ':'')+pe.value+'</a></div>';});h+='</div></div>';}
   if(l.contacts&&l.contacts.length){h+='<div class="card"><div class="card-hd">Contacts Spoken To</div><div class="card-bd">';l.contacts.forEach(function(c){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">'+(c.name||'—')+'</div>'+(c.title?'<div style="font-size:12px;color:var(--txt2)">'+c.title+'</div>':'')+'</div>';});h+='</div></div>';}
@@ -1088,7 +1136,7 @@ function openEditLead(id){
   clearForm();populateForm(l);openModal('leadModal');
 }
 function clearForm(){
-  ['f_biz','f_addr','f_city','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees','f_visitdate','f_visittime'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
+  ['f_biz','f_addr','f_city','f_website','f_hubspotId','f_fudate','f_pcount','f_tpages','f_leaseend','f_leaseco','f_leaseamt','f_notes','f_employees','f_visitdate','f_visittime'].forEach(function(i){const e=document.getElementById(i);if(e)e.value='';});
   document.getElementById('f_status').value='';document.getElementById('f_lease').value='';document.getElementById('f_biztype').value='';
   document.getElementById('f_starred').checked=false;
   document.querySelectorAll('.topt').forEach(function(e){e.classList.remove('sel');});
@@ -1102,7 +1150,10 @@ function clearForm(){
 function populateForm(l){
   document.getElementById('f_biz').value=l.bizName||'';document.getElementById('f_addr').value=l.address||'';
   document.getElementById('f_city').value='';
+  document.getElementById('f_website').value=l.website||'';
   document.getElementById('f_biztype').value=l.bizType||'';document.getElementById('f_employees').value=l.employees||'';
+  document.getElementById('f_hubspotId').value=l.hubspotId||'';
+  if(l.hubspotId){document.getElementById('hubspotIdRow').style.display='block';}
   document.getElementById('f_status').value=l.status||'';document.getElementById('f_fudate').value=l.followupDate||'';
   document.getElementById('f_starred').checked=!!l.starred;
   document.getElementById('f_pcount').value=l.printerCount||'';document.getElementById('f_tpages').value=l.totalPages||'';
@@ -1144,7 +1195,7 @@ function collectEntries(cid,t){
 }
 function saveLead(){
   const noteText=document.getElementById('f_notes').value.trim();
-  const data={bizName:document.getElementById('f_biz').value.trim(),address:document.getElementById('f_addr').value.trim(),bizType:document.getElementById('f_biztype').value,employees:document.getElementById('f_employees').value,temp:cTemp,status:document.getElementById('f_status').value,followupDate:document.getElementById('f_fudate').value,starred:document.getElementById('f_starred').checked,contacts:collectEntries('cCont','c'),needContacts:collectEntries('nCont','n'),phoneEmails:collectEntries('peCont','pe'),printerCount:document.getElementById('f_pcount').value,totalPages:document.getElementById('f_tpages').value,printers:collectEntries('prCont','pr'),hasLease:document.getElementById('f_lease').value,leaseend:document.getElementById('f_leaseend').value,leaseco:document.getElementById('f_leaseco').value.trim(),leaseamt:document.getElementById('f_leaseamt').value,userId:myId(),lat:pendingLatLng&&pendingLatLng.lat||null,lng:pendingLatLng&&pendingLatLng.lng||null,pinColor:pinColor};
+  const data={bizName:document.getElementById('f_biz').value.trim(),address:document.getElementById('f_addr').value.trim(),website:(document.getElementById('f_website').value||'').trim().replace(/^https?:\/\//i,''),bizType:document.getElementById('f_biztype').value,employees:document.getElementById('f_employees').value,temp:cTemp,status:document.getElementById('f_status').value,followupDate:document.getElementById('f_fudate').value,starred:document.getElementById('f_starred').checked,contacts:collectEntries('cCont','c'),needContacts:collectEntries('nCont','n'),phoneEmails:collectEntries('peCont','pe'),printerCount:document.getElementById('f_pcount').value,totalPages:document.getElementById('f_tpages').value,printers:collectEntries('prCont','pr'),hasLease:document.getElementById('f_lease').value,leaseend:document.getElementById('f_leaseend').value,leaseco:document.getElementById('f_leaseco').value.trim(),leaseamt:document.getElementById('f_leaseamt').value,hubspotId:(document.getElementById('f_hubspotId').value||'').trim(),userId:myId(),lat:pendingLatLng&&pendingLatLng.lat||null,lng:pendingLatLng&&pendingLatLng.lng||null,pinColor:pinColor};
   if(editId){
     const l=(window._leads||[]).find(function(x){return x.id===editId;});
     if(noteText&&l){const n=now();data.visits=[...(l.visits||[]),{date:n,notes:noteText}];data.lastVisitAt=n;}
@@ -1473,6 +1524,16 @@ function saveAnthropicKey(){
     }
   }
 }
+function saveWorkerUrl(){
+  var url=(document.getElementById('workerUrl').value||'').trim();
+  localStorage.setItem('cbs_worker_url',url);
+}
+function loadWorkerUrl(){
+  var url=localStorage.getItem('cbs_worker_url')||'';
+  var el=document.getElementById('workerUrl');
+  if(el)el.value=url;
+}
+
 function loadAnthropicKey(){
   var key=localStorage.getItem('cbs_akey')||'';
   var el=document.getElementById('anthropicApiKey');
@@ -1843,7 +1904,7 @@ function applyAllClaudeResults(info){
 var _origShowScreen=showScreen;
 showScreen=function(name){
   _origShowScreen(name);
-  if(name==='settings'){loadAnthropicKey();renderProfileSwitcher();renderUsageTracker();}
+  if(name==='settings'){loadAnthropicKey();loadWorkerUrl();renderProfileSwitcher();renderUsageTracker();}
 };
 
 // ══ PROFILE SWITCHER ══════════════════════════════════════════════════
@@ -3023,6 +3084,41 @@ function deleteAppt(leadId,apptId){
     renderCalendar();
   });
 }
+
+// ── HUBSPOT SYNC (stub — full Worker integration coming soon) ─────────
+function toggleHubspotIdField(){
+  var row=document.getElementById('hubspotIdRow');
+  if(row)row.style.display=row.style.display==='none'?'block':'none';
+}
+
+function syncToHubspot(id){
+  var l=(window._leads||[]).find(function(x){return x.id===id;});
+  if(!l)return;
+  var akey=localStorage.getItem('cbs_akey')||'';
+  if(!akey){alert('Add your Anthropic API key in Settings first.');return;}
+  // Check for Cloudflare Worker URL
+  var workerUrl=localStorage.getItem('cbs_worker_url')||'';
+  if(!workerUrl){
+    alert('HubSpot sync not yet configured.\n\nOnce your Cloudflare Worker is set up, add the Worker URL in Settings and this button will push this company directly to HubSpot.');
+    return;
+  }
+  // Full sync will be wired here once Worker is built
+  showToast('HubSpot sync coming soon!');
+}
+
+// ── AI VOICE NOTE: also extract website if mentioned ──────────────────
+// Already handled in applyAllClaudeResults — adding website field support
+var _origApplyAll=applyAllClaudeResults;
+applyAllClaudeResults=function(info){
+  _origApplyAll(info);
+  // Also fill website if Claude found it
+  if(info.website){
+    var el=document.getElementById('f_website');
+    if(el&&!el.value){
+      el.value=info.website.replace(/^https?:\/\//i,'');
+    }
+  }
+};
 </script>
 </body>
 </html>
