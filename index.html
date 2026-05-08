@@ -1587,8 +1587,15 @@ function importHubspot(){
     const iZip    = col(['zip','postal code','zip code','mailing postal code']);
     const iIndustry = col(['industry','type','business type']);
     const iWebsite  = col(['website','domain','website url','company domain name']);
-    const iNotes    = col(['notes','description','about us']);
+    const iNotes    = col(['notes','description','about us','notes']);
     const iOwner    = col(['company owner','owner','assigned to','hubspot owner']);
+    const iContact  = col(['contact name','contact','contacts','primary contact']);
+    const iTemp     = col(['temperature','temp','lead temp','lead temperature']);
+    const iStatus   = col(['status','lead status']);
+    const iFollowup = col(['follow-up date','followup date','follow up date','follow-up']);
+    const iPCount   = col(['printer count','printers','number of printers','# printers']);
+    const iPages    = col(['total pages/month','total pages','pages per month','monthly pages']);
+    const iPrinters = col(['printers','printer models','printer info','printer types']);
 
     if(iName<0){alert('Could not find a Company Name column.\n\nHeaders found:\n'+headers.join(', '));return;}
 
@@ -1748,6 +1755,47 @@ function importHubspot(){
         // Fill in missing bizType
         if(!existing.bizType&&bizType)updates.bizType=bizType;
 
+        // Fill in missing temp/status from extended columns
+        var contactVal2=g(cells,iContact)||'';
+        var tempVal2=(g(cells,iTemp)||'').toLowerCase().trim();
+        var statusVal2=g(cells,iStatus)||'';
+        var followupVal2=g(cells,iFollowup)||'';
+        var pcountVal2=g(cells,iPCount)||'';
+        var pagesVal2=g(cells,iPages)||'';
+        var printersVal2=g(cells,iPrinters)||'';
+        if(['hot','warm','cool','cold'].indexOf(tempVal2)<0)tempVal2='';
+
+        if(!existing.temp&&tempVal2)updates.temp=tempVal2;
+        if((!existing.status||existing.status==='Prospecting')&&statusVal2)updates.status=statusVal2;
+        if(!existing.followupDate&&followupVal2)updates.followupDate=followupVal2;
+        if(!existing.printerCount&&pcountVal2)updates.printerCount=pcountVal2;
+        if(!existing.totalPages&&pagesVal2)updates.totalPages=pagesVal2;
+
+        // Add contact if not already there
+        if(contactVal2){
+          var hasContact=existing.contacts&&existing.contacts.length>0;
+          if(!hasContact){
+            var newContacts=[];
+            contactVal2.split(/[,;]/).forEach(function(c){
+              var cn=c.trim();
+              if(cn)newContacts.push({name:cn,title:'',phone:'',email:''});
+            });
+            if(newContacts.length)updates.contacts=newContacts;
+          }
+        }
+
+        // Add visit note if we have notes/printer info and no visits yet
+        var noteLines2=[];
+        var notesVal2=g(cells,iNotes)||'';
+        if(notesVal2)noteLines2.push(notesVal2);
+        if(pcountVal2&&!existing.printerCount)noteLines2.push('Printer count: '+pcountVal2);
+        if(pagesVal2&&!existing.totalPages)noteLines2.push('Pages/month: '+pagesVal2);
+        if(printersVal2&&(!existing.printers||!existing.printers.length))noteLines2.push('Printers: '+printersVal2);
+        var noteStr2=noteLines2.join(' | ');
+        if(noteStr2&&(!existing.visits||!existing.visits.length)){
+          updates.visits=[{date:now(),notes:noteStr2}];
+        }
+
         // Fill in missing website
         if(!existing.website&&website)updates.website=website.replace(/^https?:\/\//i,'');
 
@@ -1780,16 +1828,45 @@ function importHubspot(){
         var phoneEmails=[];
         if(phone)phoneEmails.push({type:'Phone',label:'Office',value:phone});
         if(email&&email.includes('@'))phoneEmails.push({type:'Email',label:'Company',value:email});
+        // Read extended columns for new leads
+        var xContact=(g(cells,iContact)||'').trim();
+        var xTemp=(g(cells,iTemp)||'').toLowerCase().trim();
+        var xStatus=g(cells,iStatus)||'';
+        var xFollowup=g(cells,iFollowup)||'';
+        var xPCount=g(cells,iPCount)||'';
+        var xPages=g(cells,iPages)||'';
+        var xPrinters=g(cells,iPrinters)||'';
+        if(['hot','warm','cool','cold'].indexOf(xTemp)<0)xTemp='';
+        // Build contacts from contact name field
+        var xContacts=[];
+        if(xContact){
+          xContact.split(/[,;]/).forEach(function(c){
+            var cn=c.trim();if(cn)xContacts.push({name:cn,title:'',phone:'',email:''});
+          });
+        }
+        // Build visit note from all available note fields
+        var xNoteLines=[];
+        if(notes)xNoteLines.push(notes);
+        if(xPCount)xNoteLines.push('Printers: '+xPCount);
+        if(xPages)xNoteLines.push('Pages/month: '+xPages);
+        if(xPrinters)xNoteLines.push('Models: '+xPrinters);
+        var xNote=xNoteLines.join(' | ');
         var data={
           bizName:bizName,address:address,bizType:bizType,
           website:website?website.replace(/^https?:\/\//i,''):'',
-          hubspotId:hsId||'',employees:'',temp:'',status:'Prospecting',
-          followupDate:'',starred:false,contacts:[],needContacts:[],
-          phoneEmails:phoneEmails,printerCount:'',totalPages:'',printers:[],
+          hubspotId:hsId||'',employees:'',
+          temp:xTemp,
+          status:xStatus||'Prospecting',
+          followupDate:xFollowup,
+          starred:false,
+          contacts:xContacts,needContacts:[],
+          phoneEmails:phoneEmails,
+          printerCount:xPCount,totalPages:xPages,
+          printers:xPrinters?[{model:xPrinters,color:'',pages:'',notes:''}]:[],
           hasLease:'',leaseend:'',leaseco:'',leaseamt:'',
-          customLabel:'Current Client',
+          customLabel:xTemp?'':'Current Client',
           userId:myId(),lat:null,lng:null,pinColor:'#2471a3',
-          visits:notes?[{date:now(),notes:'Imported from HubSpot: '+notes}]:[]
+          visits:xNote?[{date:now(),notes:xNote}]:(notes?[{date:now(),notes:'Imported: '+notes}]:[])
         };
         if(address){
           (function(d,addr){
