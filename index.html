@@ -1096,6 +1096,41 @@ function renderDetail(id){
     var wsUrl=l.website.startsWith('http')?l.website:'https://'+l.website;
     h+='<div class="card"><div class="card-hd">Website</div><div class="card-bd"><a href="'+wsUrl+'" target="_blank" style="color:var(--cool);font-weight:600;font-size:14px;word-break:break-all">'+escHtml(wsDisplay)+'</a></div></div>';
   }
+  // Pin color picker — quick access right on the profile
+  if(isOwner){
+    var cm2={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+    var currentFill=typeof getLeadColor==='function'?getLeadColor(l):(cm2[l.temp]||'#7f8c8d');
+    var u2=(window._users||[]).find(function(x){return x.id===l.userId;});
+    var currentBorder=u2&&u2.pinColor?u2.pinColor:'#ffffff';
+    h+='<div class="card"><div class="card-hd"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.2 11.6 7.8 12.1.1.1.3.1.4 0C12.8 21.6 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg> Pin Color</div><div class="card-bd">'
+      +'<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;gap:4px">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:'+currentFill+';border:3px solid '+currentBorder+'"></div>'
+      +'<div style="font-size:9px;color:var(--txt2);text-align:center">Current</div></div>'
+      +'<div style="font-size:12px;color:var(--txt2);line-height:1.5;flex:1">Pin fill = temperature/custom label. Border = your signature color (set in Settings). Tap a color to change the custom label color for this lead.</div>'
+      +'</div>'
+      +'<div style="font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Custom Label for This Lead</div>'
+      +'<div style="display:flex;flex-wrap:wrap;gap:7px" id="pinColorPicker_'+id+'">'
+      +(function(){
+        var uid=l.userId;
+        var labels=typeof getCustomLabels==='function'?getCustomLabels(uid):[];
+        var tc=l.temp||'';
+        var cm3={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+        var rows='';
+        // Default temp options
+        [{v:'hot',col:'#c0392b',icon:'🔥'},{v:'warm',col:'#e67e22',icon:'🌤'},{v:'cool',col:'#2471a3',icon:'❄️'},{v:'cold',col:'#7f8c8d',icon:'🧊'}].forEach(function(opt){
+          var active=!l.customLabel&&tc===opt.v;
+          rows+='<div data-lid="'+id+'" data-temp="'+opt.v+'" data-label="" onclick="setLeadColor(this)" style="cursor:pointer;border:2px solid '+(active?'var(--navy)':'var(--bord)')+';border-radius:var(--rsm);padding:5px 9px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;background:'+(active?opt.col+'22':'var(--bg)')+'"><div style="width:12px;height:12px;border-radius:50%;background:'+opt.col+'"></div>'+opt.icon+' '+opt.v.charAt(0).toUpperCase()+opt.v.slice(1)+'</div>';
+        });
+        // Custom labels
+        labels.forEach(function(lbl){
+          var active=l.customLabel===lbl.label;
+          rows+='<div data-lid="'+id+'" data-temp="" data-label="'+lbl.label.replace(/"/g,'&quot;')+'" data-color="'+lbl.color+'" onclick="setLeadColor(this)" style="cursor:pointer;border:2px solid '+(active?'var(--navy)':'var(--bord)')+';border-radius:var(--rsm);padding:5px 9px;display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;background:'+(active?lbl.color+'22':'var(--bg)')+'"><div style="width:12px;height:12px;border-radius:50%;background:'+lbl.color+'"></div>'+escHtml(lbl.label)+'</div>';
+        });
+        return rows;
+      }())
+      +'</div></div></div>';
+  }
   if(l.phoneEmails&&l.phoneEmails.length){h+='<div class="card"><div class="card-hd">Phone &amp; Email</div><div class="card-bd">';l.phoneEmails.forEach(function(pe){const isP=pe.type&&(pe.type.includes('Phone')||pe.type.includes('Cell'));const isE=pe.type&&pe.type.includes('Email');h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-size:11px;color:var(--txt2)">'+(pe.label||pe.type)+'</div><a class="tap-link" href="'+(isP?'tel:':isE?'mailto:':'')+pe.value+'" style="font-size:15px;font-weight:700;text-decoration:none">'+(isP?'📞 ':isE?'✉️ ':'')+pe.value+'</a></div>';});h+='</div></div>';}
   if(l.contacts&&l.contacts.length){h+='<div class="card"><div class="card-hd">Contacts Spoken To</div><div class="card-bd">';l.contacts.forEach(function(c){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">'+(c.name||'—')+'</div>'+(c.title?'<div style="font-size:12px;color:var(--txt2)">'+c.title+'</div>':'')+'</div>';});h+='</div></div>';}
   if(l.needContacts&&l.needContacts.length){h+='<div class="card"><div class="card-hd">Need to Speak To</div><div class="card-bd">';l.needContacts.forEach(function(c){h+='<div style="padding:7px 0;border-bottom:1px solid var(--bord)"><div style="font-weight:700">'+(c.name||'—')+'</div>'+(c.title?'<div style="font-size:12px;color:var(--txt2)">'+c.title+'</div>':'')+(c.notes?'<div style="font-size:12px;color:var(--txt2)">'+c.notes+'</div>':'')+'</div>';});h+='</div></div>';}
@@ -1529,8 +1564,13 @@ function importHubspot(){
     const lines=text.split('\n').filter(function(l){return l.trim();});
     if(lines.length<2){alert('File appears empty or invalid.');return;}
     const headers=lines[0].split(',').map(function(h){return h.replace(/"/g,'').trim().toLowerCase();});
-    // Map common HubSpot column names
-    const col=function(names){for(var i=0;i<names.length;i++){var idx=headers.indexOf(names[i].toLowerCase());if(idx>=0)return idx;}return -1;};
+    const col=function(names){
+      for(var i=0;i<names.length;i++){
+        var idx=headers.indexOf(names[i].toLowerCase());
+        if(idx>=0)return idx;
+      }
+      return -1;
+    };
     const iName=col(['company name','company','name','account name']);
     const iAddr=col(['address','street address','mailing address']);
     const iCity=col(['city','mailing city']);
@@ -1538,27 +1578,116 @@ function importHubspot(){
     const iZip=col(['zip','postal code','zip code','mailing postal code']);
     const iPhone=col(['phone','phone number','office phone']);
     const iEmail=col(['email','email address','company domain name']);
-    const iOwner=col(['hubspot owner','owner','assigned to']);
     const iNotes=col(['notes','description']);
+    const iWebsite=col(['website','domain','company domain name','website url']);
+    const iHsId=col(['record id','company id','hubspot id','hs_object_id']);
     if(iName<0){alert('Could not find a "Company Name" column. Make sure you exported Companies from HubSpot.');return;}
-    var imported=0;
+
+    // Build lookup of existing leads for duplicate detection
+    // Normalize names: lowercase, strip punctuation, collapse spaces
+    function normName(s){return(s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();}
+    var existingNames=new Set();
+    var existingHsIds=new Set();
+    (window._leads||[]).forEach(function(l){
+      if(l.bizName)existingNames.add(normName(l.bizName));
+      if(l.hubspotId)existingHsIds.add(l.hubspotId.toString().trim());
+    });
+
+    var imported=0,skipped=0,updated=0;
     var promises=[];
+    var skippedNames=[];
+
     for(var i=1;i<lines.length;i++){
       var cells=lines[i].match(/(".*?"|[^,]+)(?=,|$)/g)||lines[i].split(',');
       var get=function(idx){return idx>=0&&cells[idx]?cells[idx].replace(/^"|"$/g,'').trim():''};
-      var bizName=get(iName);if(!bizName)continue;
-      var addrParts=[get(iAddr),get(iCity),get(iState)+' '+get(iZip)].filter(function(x){return x.trim();});
+      var bizName=get(iName);
+      if(!bizName)continue;
+
+      var hsId=get(iHsId);
+
+      // ── Duplicate check 1: HubSpot ID match (exact) ──────────────
+      if(hsId&&existingHsIds.has(hsId)){
+        skipped++;
+        skippedNames.push(bizName+' (already in app by HubSpot ID)');
+        continue;
+      }
+
+      // ── Duplicate check 2: Name similarity ───────────────────────
+      var norm=normName(bizName);
+      if(existingNames.has(norm)){
+        skipped++;
+        skippedNames.push(bizName+' (name already exists)');
+        continue;
+      }
+
+      // ── New lead — import it ──────────────────────────────────────
+      var addrParts=[get(iAddr),get(iCity),(get(iState)+' '+get(iZip)).trim()].filter(function(x){return x.trim();});
       var address=addrParts.join(', ').trim();
-      var phoneVal=get(iPhone);var emailVal=get(iEmail);
+      var phoneVal=get(iPhone);
+      var emailVal=get(iEmail);
+      var websiteVal=get(iWebsite);
       var phoneEmails=[];
       if(phoneVal)phoneEmails.push({type:'Phone',label:'Office',value:phoneVal});
       if(emailVal&&emailVal.includes('@'))phoneEmails.push({type:'Email',label:'Company',value:emailVal});
       var notes=get(iNotes);
-      var data={bizName:bizName,address:address,bizType:'',employees:'',temp:'cool',status:'Prospecting',followupDate:'',starred:false,contacts:[],needContacts:[],phoneEmails:phoneEmails,printerCount:'',totalPages:'',printers:[],hasLease:'',leaseend:'',leaseco:'',leaseamt:'',userId:myId(),lat:null,lng:null,pinColor:'#2471a3',visits:notes?[{date:now(),notes:'Imported from HubSpot: '+notes}]:[]};
-      promises.push(window.fbSaveLead(data,null));
+      var data={
+        bizName:bizName,address:address,
+        website:websiteVal?websiteVal.replace(/^https?:\/\//i,''):'',
+        hubspotId:hsId||'',
+        bizType:'',employees:'',temp:'',status:'Prospecting',
+        followupDate:'',starred:false,
+        contacts:[],needContacts:[],
+        phoneEmails:phoneEmails,
+        printerCount:'',totalPages:'',printers:[],
+        hasLease:'',leaseend:'',leaseco:'',leaseamt:'',
+        customLabel:'Current Client',
+        userId:myId(),lat:null,lng:null,pinColor:'#2471a3',
+        visits:notes?[{date:now(),notes:'Imported from HubSpot: '+notes}]:[]
+      };
+      // Auto-geocode the address if we have one
+      if(address){
+        (function(d,addr){
+          fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1&countrycodes=us',
+            {headers:{'Accept-Language':'en-US,en'}})
+          .then(function(r){return r.json();})
+          .then(function(res){
+            if(res&&res[0]){
+              d.lat=parseFloat(res[0].lat);
+              d.lng=parseFloat(res[0].lon);
+            }
+            promises.push(window.fbSaveLead(d,null));
+          }).catch(function(){
+            promises.push(window.fbSaveLead(d,null));
+          });
+        })(data,address);
+      } else {
+        promises.push(window.fbSaveLead(data,null));
+      }
+      existingNames.add(norm);
+      if(hsId)existingHsIds.add(hsId);
       imported++;
     }
-    Promise.all(promises).then(function(){document.getElementById('importResult').textContent='✅ Successfully imported '+imported+' contacts from HubSpot!';fileInput.value='';});
+
+    // Wait a moment for geocoding fetches to queue up, then save all
+    setTimeout(function(){
+    Promise.all(promises).then(function(){
+      var msg='✅ Import complete!\n\n'+
+        '• '+imported+' new companies added\n'+
+        '• '+skipped+' skipped (already in app)';
+      if(skippedNames.length&&skippedNames.length<=10){
+        msg+='\n\nSkipped:\n'+skippedNames.map(function(n){return'  - '+n;}).join('\n');
+      } else if(skippedNames.length>10){
+        msg+='\n\n('+skippedNames.length+' total skipped)';
+      }
+      var resultEl=document.getElementById('importResult');
+      if(resultEl){
+        resultEl.style.color=imported>0?'var(--green)':'var(--txt2)';
+        resultEl.textContent=imported+' added, '+skipped+' skipped (already existed)';
+      }
+      alert(msg);
+      fileInput.value='';
+    });
+    },200); // small delay to let geocoding requests queue
   };
   reader.readAsText(file);
 }
@@ -2816,24 +2945,16 @@ function processClaudeNext(){
   var prompt='Find the '+what.join(' and ')+' for this business: "'+(l.bizName||'').replace(/"/g,'\"')+'"'+
     (l.address?' near '+l.address:' in Northern California, likely Redding/Chico/Red Bluff area')+
     '. Return ONLY this JSON (no other text): {"address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","found":true} or {"found":false} if not found.';
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
-    body:JSON.stringify({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:300,
-      tools:[{type:'web_search_20250305',name:'web_search'}],
-      messages:[{role:'user',content:prompt}]
-    })
-  })
-  .then(function(r){
-    if(!r.ok){return r.json().then(function(e){throw new Error((e.error&&e.error.message)||('HTTP '+r.status));});}
-    return r.json();
-  })
+  claudeApiFetch({
+    model:'claude-sonnet-4-20250514',
+    max_tokens:300,
+    tools:[{type:'web_search_20250305',name:'web_search'}],
+    messages:[{role:'user',content:prompt}]
+  },akey)
   .then(function(data){
     var text='';
     if(data.content)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
-    if(data.error){showBatchResult(l,null,'API: '+data.error.message);setTimeout(processClaudeNext,1200);return;}
+    if(data.error){showBatchResult(l,null,'API error: '+data.error.message);setTimeout(processClaudeNext,1200);return;}
     incrementUsage();
     var info=null;
     try{
@@ -2841,12 +2962,12 @@ function processClaudeNext(){
       var m=clean.match(/\{[\s\S]*?\}/);
       if(m)info=JSON.parse(m[0]);
     }catch(e){info=null;}
-    showBatchResult(l,(info&&info.found)?info:null,(!info||!info.found)?'Not found':null);
-    setTimeout(processClaudeNext,1200);
+    showBatchResult(l,(info&&info.found)?info:null,(!info||!info.found)?'Not found online':null);
+    setTimeout(processClaudeNext,1500);
   })
   .catch(function(err){
-    showBatchResult(l,null,'Error: '+(err.message||'Network failure'));
-    setTimeout(processClaudeNext,2000);
+    showBatchResult(l,null,'Error: '+(err.message||'Failed to fetch'));
+    setTimeout(processClaudeNext,2500);
   });
 }
 
@@ -3460,6 +3581,48 @@ populateForm=function(l){
   _origPopulateForm(l);
   populateCustomLabelSelector(l.customLabel||'');
 };
+
+// ── SHARED CLAUDE API FETCH HELPER ────────────────────────────────────
+// Centralizes headers, error handling, and retry logic for all Claude calls
+function claudeApiFetch(body,akey){
+  akey=akey||localStorage.getItem('cbs_akey')||'';
+  return fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':akey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-iab-support':'true'
+    },
+    body:JSON.stringify(body)
+  }).then(function(r){
+    if(!r.ok){
+      return r.json().then(function(e){
+        var msg=(e&&e.error&&e.error.message)||('HTTP '+r.status);
+        throw new Error(msg);
+      }).catch(function(e2){
+        if(e2.message)throw e2;
+        throw new Error('HTTP '+r.status);
+      });
+    }
+    return r.json();
+  });
+}
+
+// ── SET LEAD COLOR/LABEL FROM DETAIL PAGE ─────────────────────────────
+function setLeadColor(el){
+  var id=el.dataset.lid;
+  var temp=el.dataset.temp||'';
+  var label=el.dataset.label||'';
+  if(!id)return;
+  var updates={temp:temp,customLabel:label};
+  window.fbUpdateLead(id,updates).then(function(){
+    // Refresh detail view to update the picker
+    showDetail(id);
+    refreshMapPins();
+    showToast(label?'Label set: '+label:'Temperature set: '+temp);
+  });
+}
 </script>
 </body>
 </html>
