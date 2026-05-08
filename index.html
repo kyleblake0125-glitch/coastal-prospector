@@ -716,13 +716,44 @@ const BOUNDS_SW=[39.5,-124.5],BOUNDS_NE=[42.1,-120.0];
 const CENTER=[40.8,-122.3];
 
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
-function now(){return new Date().toISOString();}
-function today(){return new Date().toISOString().split('T')[0];}
+function now(){
+  // Store timestamps with local timezone offset so date comparisons work correctly
+  var d=new Date();
+  var off=-d.getTimezoneOffset(); // offset in minutes (positive for behind UTC like PST)
+  var sign=off>=0?'+':'-';
+  var ah=String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
+  var am=String(Math.abs(off)%60).padStart(2,'0');
+  // Build local ISO string
+  var y=d.getFullYear();
+  var mo=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  var h=String(d.getHours()).padStart(2,'0');
+  var mi=String(d.getMinutes()).padStart(2,'0');
+  var s=String(d.getSeconds()).padStart(2,'0');
+  return y+'-'+mo+'-'+day+'T'+h+':'+mi+':'+s+sign+ah+':'+am;
+}
+function today(){
+  // Use local date (not UTC) so California users see the correct day
+  var d=new Date();
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 function myId(){return window._fbUser&&window._fbUser.uid;}
 function cu(){return(window._users||[]).find(u=>u.id===myId())||{name:(window._fbUser&&window._fbUser.email||'Me').split('@')[0],color:'#0a3d62',id:myId()};}
 function ini(n){return(n||'?').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);}
-function fdt(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
-function fds(iso){if(!iso)return'';const d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+function fdt(iso){if(!iso)return'';var d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'});}
+function fds(iso){if(!iso)return'';var d=new Date(iso);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}
+// Extract local YYYY-MM-DD from any ISO timestamp (handles both UTC and offset formats)
+function localDateStr(iso){
+  if(!iso)return'';
+  var d=new Date(iso);
+  var y=d.getFullYear();
+  var m=String(d.getMonth()+1).padStart(2,'0');
+  var day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
 
 window.onAppReady=function(){
   const uid=myId();
@@ -808,7 +839,7 @@ function renderDashboard(){
   const t=today();
   const mine=(window._leads||[]).filter(l=>l.userId===myId());
   const hot=mine.filter(l=>l.temp==='hot').length;
-  const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>v.date.startsWith(t)));
+  const todayL=mine.filter(l=>l.visits&&l.visits.some(v=>localDateStr(v.date)===t));
   const fu=mine.filter(l=>l.followupDate&&l.followupDate<=t).sort((a,b)=>a.followupDate.localeCompare(b.followupDate));
   const starred=mine.filter(l=>l.starred).length;
   document.getElementById('dashStats').innerHTML=
@@ -825,7 +856,7 @@ function renderDashboard(){
 }
 
 function calcStreak(leads){
-  const days=new Set();leads.forEach(l=>(l.visits||[]).forEach(v=>days.add(v.date.split('T')[0])));
+  const days=new Set();leads.forEach(l=>(l.visits||[]).forEach(v=>days.add(localDateStr(v.date))));
   let s=0,d=new Date();
   while(true){const ds=d.toISOString().split('T')[0];if(days.has(ds)){s++;d.setDate(d.getDate()-1);}else break;}
   return s;
@@ -885,7 +916,7 @@ function liHtml(l,showOwner){
 function renderToday(){
   var t=today();
   var mine=(window._leads||[]).filter(function(l){return l.userId===myId();});
-  var todayL=mine.filter(function(l){return l.visits&&l.visits.some(function(v){return v.date.startsWith(t);});});
+  var todayL=mine.filter(function(l){return l.visits&&l.visits.some(function(v){return localDateStr(v.date)===t;});});
   var dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   var h='<div style="background:var(--navyd);color:#fff;border-radius:var(--r);padding:16px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between"><div><div style="font-family:var(--fd);font-size:18px">Today\'s Route</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px">'+dn+'</div></div><div style="text-align:right"><div style="font-size:26px;font-weight:700;color:var(--gold);font-family:var(--fd)">'+todayL.length+'</div><div style="font-size:10px;color:rgba(255,255,255,.5)">Stops</div></div></div>';
   if(todayL.length){
@@ -1005,7 +1036,19 @@ function addVisit(id){
   var visitDate;
   if(dateEl&&dateEl.value){
     var t=timeEl&&timeEl.value?timeEl.value:'12:00';
-    visitDate=new Date(dateEl.value+'T'+t+':00').toISOString();
+    // Use local time ISO string (not UTC) so date shows correctly
+    var dtStr=dateEl.value+'T'+t+':00';
+    var dtLocal=new Date(dtStr);
+    // Format as local ISO with timezone offset
+    var off=-dtLocal.getTimezoneOffset();
+    var sign=off>=0?'+':'-';
+    var ah=String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
+    var am=String(Math.abs(off)%60).padStart(2,'0');
+    var y=dtLocal.getFullYear(),mo=String(dtLocal.getMonth()+1).padStart(2,'0'),
+        day=String(dtLocal.getDate()).padStart(2,'0'),
+        h=String(dtLocal.getHours()).padStart(2,'0'),
+        mi=String(dtLocal.getMinutes()).padStart(2,'0');
+    visitDate=y+'-'+mo+'-'+day+'T'+h+':'+mi+':00'+sign+ah+':'+am;
   } else {
     visitDate=now();
   }
@@ -1021,8 +1064,8 @@ function setVisitDateToNow(){
   var dateEl=document.getElementById('addNoteDate');
   var timeEl=document.getElementById('addNoteTime');
   if(!dateEl)return;
+  dateEl.value=today(); // uses local date
   var n=new Date();
-  dateEl.value=n.toISOString().split('T')[0];
   if(timeEl)timeEl.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
 }
 function delLead(id){if(!confirm('Delete this prospect?'))return;window.fbDeleteLead(id);goBack();}
@@ -1395,11 +1438,11 @@ function exportCSV(){
 }
 function exportDay(){
   const t=today(),u=cu();
-  const tl=(window._leads||[]).filter(function(l){return l.userId===myId()&&l.visits&&l.visits.some(function(v){return v.date.startsWith(t);});});
+  const tl=(window._leads||[]).filter(function(l){return l.userId===myId()&&l.visits&&l.visits.some(function(v){return localDateStr(v.date)===t;});});
   if(!tl.length){alert('No visits logged today.');return;}
   const dn=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   var txt='DAILY ACTIVITY REPORT\n'+(u&&u.name||'Rep')+' — '+dn+'\n'+'='.repeat(55)+'\nBUSINESSES VISITED: '+tl.length+'\nESTIMATED MILES: ~'+tl.filter(function(l){return l.address;}).length*8+' mi\n\n';
-  tl.forEach(function(l,i){txt+=(i+1)+'. '+(l.bizName||'Unnamed')+(l.starred?' ⭐':'')+'\n';if(l.address)txt+='   📍 '+l.address+'\n';if(l.bizType)txt+='   🏢 '+l.bizType+'\n';if(l.temp)txt+='   🌡 Lead Temp: '+l.temp.toUpperCase()+'\n';var cs=(l.contacts||[]).filter(function(c){return c.name;});if(cs.length)txt+='   👤 Spoke with: '+cs.map(function(c){return c.name+(c.title?' ('+c.title+')':'');}).join(', ')+'\n';var tv=l.visits&&l.visits.find(function(v){return v.date.startsWith(t);});if(tv&&tv.notes)txt+='   📝 '+tv.notes+'\n';txt+='\n';});
+  tl.forEach(function(l,i){txt+=(i+1)+'. '+(l.bizName||'Unnamed')+(l.starred?' ⭐':'')+'\n';if(l.address)txt+='   📍 '+l.address+'\n';if(l.bizType)txt+='   🏢 '+l.bizType+'\n';if(l.temp)txt+='   🌡 Lead Temp: '+l.temp.toUpperCase()+'\n';var cs=(l.contacts||[]).filter(function(c){return c.name;});if(cs.length)txt+='   👤 Spoke with: '+cs.map(function(c){return c.name+(c.title?' ('+c.title+')':'');}).join(', ')+'\n';var tv=l.visits&&l.visits.find(function(v){return localDateStr(v.date)===t;});if(tv&&tv.notes)txt+='   📝 '+tv.notes+'\n';txt+='\n';});
   dl(txt,'day-report-'+t+'.txt','text/plain');
 }
 function dl(content,filename,type){var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:type}));a.download=filename;a.click();}
@@ -2352,7 +2395,7 @@ function calcSmartMileage(todayLeads){
   todayLeads.forEach(function(l){
     if(!l.lat||!l.lng)return;
     (l.visits||[]).forEach(function(v){
-      if(v.date.startsWith(t))stops.push({time:new Date(v.date),lat:l.lat,lng:l.lng,name:l.bizName||'Visit'});
+      if(localDateStr(v.date)===t)stops.push({time:new Date(v.date),lat:l.lat,lng:l.lng,name:l.bizName||'Visit'});
     });
   });
   if(!stops.length)return 0;
@@ -2400,7 +2443,7 @@ function calcSmartMileageOneTrip(todayLeads){
     if(!l.lat||!l.lng)return;
     var earliestVisit=null;
     (l.visits||[]).forEach(function(v){
-      if(v.date.startsWith(t)){
+      if(localDateStr(v.date)===t){
         var d=new Date(v.date);
         if(!earliestVisit||d<earliestVisit)earliestVisit=d;
       }
@@ -2774,7 +2817,7 @@ function renderCalendar(){
   var visitMap={};
   mine.forEach(function(l){
     (l.visits||[]).forEach(function(v){
-      var d=v.date.split('T')[0];
+      var d=localDateStr(v.date);
       if(!visitMap[d])visitMap[d]=[];
       visitMap[d].push({lead:l,visit:v});
     });
@@ -2915,7 +2958,7 @@ function exportCalDay(ds){
   var visits=[];
   mine.forEach(function(l){
     (l.visits||[]).forEach(function(v){
-      if(v.date.startsWith(ds))visits.push({lead:l,visit:v});
+      if(localDateStr(v.date)===ds)visits.push({lead:l,visit:v});
     });
   });
   visits.sort(function(a,b){return new Date(a.visit.date)-new Date(b.visit.date);});
