@@ -321,7 +321,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
           <div class="legend-row"><div class="ldot" style="background:#e67e22"></div>Warm</div>
           <div class="legend-row"><div class="ldot" style="background:#2471a3"></div>Cool</div>
           <div class="legend-row"><div class="ldot" style="background:#7f8c8d"></div>Cold</div>
-          <div class="legend-row"><div class="ldot" style="background:#d4a843"></div>Custom</div>
+          <div class="legend-row"><div class="ldot" style="background:#d4a843"></div>Starred</div>
+          <div class="legend-row" style="margin-top:6px;border-top:1px solid rgba(255,255,255,.15);padding-top:6px"><div class="ldot" style="background:transparent;border:2px solid rgba(255,255,255,.6)"></div>Border = user</div>
         </div>
       </div>
     </div>
@@ -411,6 +412,12 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   </div>
 </div>
 
+<div class="sec">My Signature Pin Color</div>
+<div class="card"><div class="card-bd">
+  <div style="font-size:13px;color:var(--txt2);margin-bottom:12px;line-height:1.5">Choose your border color — shown on your pins when both users' leads are visible on the map. Starred leads always use gold.</div>
+  <div id="sigColorGrid" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:12px"></div>
+  <div style="font-size:12px;color:var(--txt2)" id="sigColorLabel">No color selected</div>
+</div></div>
 <div class="sec">Switch Profile</div>
 <div class="card" id="profileSwitcherCard"><div class="card-bd" id="profileSwitcherList"></div></div>
 
@@ -721,6 +728,12 @@ function chk(){
 window.fbSaveLead=async(data,id)=>{sd('syncing');try{if(id){await updateDoc(doc(db,'leads',id),{...data,updatedAt:new Date().toISOString()});}else{const n=new Date().toISOString();await addDoc(collection(db,'leads'),{...data,createdAt:n,updatedAt:n});}sd('ok');}catch(e){console.error(e);sd('off');}};
 window.fbDeleteLead=async(id)=>{sd('syncing');try{await deleteDoc(doc(db,'leads',id));sd('ok');}catch(e){console.error(e);sd('off');}};
 window.fbSaveUser=async(data)=>{try{await addDoc(collection(db,'users'),data);}catch(e){console.error(e);}};
+window.fbUpdateUser=async(uid,data)=>{try{
+  // Find the doc with matching id field
+  const snap=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js")
+    .then(m=>m.getDocs(m.query(collection(db,'users'),m.where('id','==',uid))));
+  if(!snap.empty){const docRef=snap.docs[0].ref;const {updateDoc:upd}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await upd(docRef,data);}
+}catch(e){console.error('fbUpdateUser:',e);}};
 window.fbUpdateLead=async(id,data)=>{sd('syncing');try{await updateDoc(doc(db,'leads',id),{...data,updatedAt:new Date().toISOString()});sd('ok');}catch(e){console.error(e);sd('off');}};
 // Shared config — syncs API key across all devices via Firestore
 window.fbSaveSharedKey=async(key)=>{try{await updateDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e){try{const {setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await setDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e2){console.error('Config save failed:',e2);}}};
@@ -1236,11 +1249,19 @@ function buildMapHTML(){
   var sat=typeof satOn!=='undefined'?satOn:true;
   var pins=filtered.map(function(l){
     var owner=users.find(function(u){return u.id===l.userId;});
-    var col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
-    var borderCol=(useScope&&mapScope==='all'&&owner)?owner.color:'#ffffff';
+    // Fill = always temperature based so pins are always meaningful at a glance
+    var fillCol=cm[l.temp]||'#7f8c8d';
+    // Border = user signature color when showing both users, else white
+    // If user has set a custom pinColor on this specific lead, use that as border
+    var sigCol=owner&&owner.pinColor?owner.pinColor:'#ffffff';
+    var borderCol=mapScope==='all'&&owner&&owner.id!==myUid
+      ?sigCol          // other user's signature color
+      :(owner&&owner.pinColor?owner.pinColor:'#ffffff'); // my signature or white
+    // Starred leads get gold border override
+    if(l.starred)borderCol='#d4a843';
     return {
-      lat:l.lat,lng:l.lng,col:col,borderCol:borderCol,
-      r:l.starred?13:10,id:l.id,
+      lat:l.lat,lng:l.lng,col:fillCol,borderCol:borderCol,
+      r:l.starred?14:10,id:l.id,
       biz:(l.bizName||'Unnamed').replace(/'/g,'&#39;').replace(/"/g,'&quot;'),
       addr:(l.address||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'),
       temp:l.temp||'',
@@ -1320,16 +1341,34 @@ window.onMapFrameClick=function(lat,lng){
 window.showDetailFromMap=function(id){showDetail(id);};
 
 window.refreshMapPins=function(){
-  const frame=document.getElementById('mapFrame');
+  var frame=document.getElementById('mapFrame');
   if(!frame||!frame.contentWindow||!frame.contentWindow.refreshPins)return;
-  const leads=window._leads||[];
-  const users=window._users||[];
-  const cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
-  const pins=leads.filter(function(l){return l.lat&&l.lng;}).map(function(l){
-    const col=l.pinColor&&!l.pinColor.startsWith('var(')?l.pinColor:(cm[l.temp]||'#7f8c8d');
-    const biz=(l.bizName||'Unnamed').replace(/"/g,'&quot;');
-    const addr=(l.address||'').replace(/"/g,'&quot;');
-    return {lat:l.lat,lng:l.lng,col:col,r:l.starred?13:10,id:l.id,biz:biz,addr:addr};
+  var leads=window._leads||[];
+  var users=window._users||[];
+  var myUid=myId();
+  var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+  var filtered=leads.filter(function(l){
+    if(!l.lat||!l.lng)return false;
+    if(typeof mapScope!=='undefined'){
+      if(mapScope==='mine')return l.userId===myUid;
+      if(mapScope==='other')return l.userId!==myUid;
+    }
+    return true;
+  });
+  var pins=filtered.map(function(l){
+    var owner=users.find(function(u){return u.id===l.userId;});
+    var fillCol=cm[l.temp]||'#7f8c8d';
+    var sigCol=owner&&owner.pinColor?owner.pinColor:'#ffffff';
+    var borderCol=mapScope==='all'&&owner&&owner.id!==myUid?sigCol:(owner&&owner.pinColor?owner.pinColor:'#ffffff');
+    if(l.starred)borderCol='#d4a843';
+    return {
+      lat:l.lat,lng:l.lng,col:fillCol,borderCol:borderCol,
+      r:l.starred?14:10,id:l.id,
+      biz:(l.bizName||'Unnamed').replace(/"/g,'&quot;'),
+      addr:(l.address||'').replace(/"/g,'&quot;'),
+      temp:l.temp||'',
+      owner:owner?(owner.name||''):'',
+    };
   });
   try{frame.contentWindow.refreshPins(pins);}catch(e){initMap();}
 };
@@ -1904,7 +1943,7 @@ function applyAllClaudeResults(info){
 var _origShowScreen=showScreen;
 showScreen=function(name){
   _origShowScreen(name);
-  if(name==='settings'){loadAnthropicKey();loadWorkerUrl();renderProfileSwitcher();renderUsageTracker();}
+  if(name==='settings'){loadAnthropicKey();loadWorkerUrl();renderProfileSwitcher();renderUsageTracker();renderSigColorPicker();}
 };
 
 // ══ PROFILE SWITCHER ══════════════════════════════════════════════════
@@ -3119,6 +3158,54 @@ applyAllClaudeResults=function(info){
     }
   }
 };
+
+// ── SIGNATURE PIN COLOR ────────────────────────────────────────────────
+var SIG_COLORS=[
+  {hex:'#c0392b',name:'Red'},
+  {hex:'#e67e22',name:'Orange'},
+  {hex:'#f1c40f',name:'Yellow'},
+  {hex:'#27ae60',name:'Green'},
+  {hex:'#2471a3',name:'Blue'},
+  {hex:'#8e44ad',name:'Purple'},
+  {hex:'#117a8b',name:'Teal'},
+  {hex:'#1a252f',name:'Navy'},
+  {hex:'#d4a843',name:'Gold'},
+  {hex:'#7f8c8d',name:'Gray'},
+];
+
+function renderSigColorPicker(){
+  var grid=document.getElementById('sigColorGrid');
+  var label=document.getElementById('sigColorLabel');
+  if(!grid)return;
+  var u=cu();
+  var current=u.pinColor||'';
+  grid.innerHTML='';
+  SIG_COLORS.forEach(function(c){
+    var div=document.createElement('div');
+    div.style.cssText='width:100%;aspect-ratio:1;border-radius:50%;background:'+c.hex+';cursor:pointer;border:3px solid '+(c.hex===current?'var(--navy)':'transparent')+';box-shadow:'+(c.hex===current?'0 0 0 2px var(--navy)':'none')+';transition:all .15s';
+    div.title=c.name;
+    div.addEventListener('click',function(){saveSigColor(c.hex);});
+    grid.appendChild(div);
+  });
+  if(label){
+    var found=SIG_COLORS.find(function(c){return c.hex===current;});
+    label.textContent=found?'Current: '+found.name+' — shown as pin border on the map':'No signature color set (pins show white border)';
+  }
+}
+
+function saveSigColor(hex){
+  var uid=myId();
+  if(!uid)return;
+  // Save to Firestore user record
+  window.fbUpdateUser&&window.fbUpdateUser(uid,{pinColor:hex});
+  // Also update local users array immediately
+  var users=window._users||[];
+  var u=users.find(function(u){return u.id===uid;});
+  if(u)u.pinColor=hex;
+  renderSigColorPicker();
+  refreshMapPins();
+  showToast('Signature color saved!');
+}
 </script>
 </body>
 </html>
