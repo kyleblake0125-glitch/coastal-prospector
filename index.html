@@ -1721,10 +1721,10 @@ function importHubspot(){
       if(existing){
         var updates={};
 
-        // Update address if CSV has one AND existing doesn't have a real street address
+        // Always update address if CSV has a real street address (has a number)
         var existAddr=(existing.address||'').trim();
-        var hasRealAddr=existAddr.length>10&&/\d/.test(existAddr); // real address has a number
-        if(address&&(!hasRealAddr||existAddr.length<address.length)){
+        var csvHasStreet=address&&/\d/.test(address)&&address.length>10;
+        if(csvHasStreet){
           updates.address=address;
         }
 
@@ -2202,16 +2202,12 @@ function runCombinedClaude(){
     '{"bizName":"exact business name","address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","bizType":"one of: Law Office|Medical / Dental|Accounting / Finance|Real Estate|Insurance|Manufacturing|Retail|Restaurant / Food|Education|Government|Non-Profit|Construction|Auto / Dealership|Other","employees":"number","temp":"hot|warm|cool|cold (based on interest level described)","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"number","totalPages":"monthly pages","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"monthly dollar amount number","notes":"clean 1-2 sentence visit summary"}. '+
     'Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
 
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
-    body:JSON.stringify({
+  claudeApiFetch({
       model:'claude-sonnet-4-20250514',
       max_tokens:800,
       tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],
       messages:[{role:'user',content:prompt}]
-    })
-  }).then(function(r){return r.json();})
+    },akey)
   .then(function(data){
     processingEl.classList.remove('show');
     incrementUsage();
@@ -2232,12 +2228,11 @@ function runCombinedClaude(){
       resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse response. Transcript added to notes.</span>';
       resultEl.classList.add('show');
     }
-  }).catch(function(err){
-    processingEl.classList.remove('show');
+  })
+  .catch(function(err){processingEl.classList.remove('show');
     resultEl.innerHTML='<span style="color:var(--hot)">Request failed. Check your internet and API key in Settings.</span>';
     resultEl.classList.add('show');
-  });
-}
+  });}
 
 function runCombinedClaudeWithAudio(name,city,manualNotes,base64Audio,mimeType,akey,processingEl,resultEl,msgEl,hasBizSearch){
   var bizPart=name?('"'+name.replace(/"/g,'\"')+'"'+(city?' in '+city.replace(/"/g,'\"')+', California':' in Northern California')):'(business name not provided)';
@@ -2252,11 +2247,7 @@ function runCombinedClaudeWithAudio(name,city,manualNotes,base64Audio,mimeType,a
     {type:'text',text:prompt},
     {type:'document',source:{type:'base64',media_type:mimeType,data:base64Audio}}
   ]}];
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:messages})
-  }).then(function(r){return r.json();})
+  claudeApiFetch({model:'claude-sonnet-4-20250514',max_tokens:800,tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:messages},akey)
   .then(function(data){
     processingEl.classList.remove('show');
     incrementUsage();
@@ -2265,357 +2256,10 @@ function runCombinedClaudeWithAudio(name,city,manualNotes,base64Audio,mimeType,a
     if(!text){resultEl.innerHTML='<span style="color:var(--hot)">Could not process. Try again.</span>';resultEl.classList.add('show');return;}
     try{applyAllClaudeResults(JSON.parse(text.replace(/```json|```/g,'').trim()));}
     catch(e){resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse. Try recording again.</span>';resultEl.classList.add('show');}
-  }).catch(function(){
-    processingEl.classList.remove('show');
-    resultEl.innerHTML='<span style="color:var(--hot)">Failed. Check connection and API key.</span>';
-    resultEl.classList.add('show');
-  });
-}
-
-function applyAllClaudeResults(info){
-  var extracted=[];
-  // Business info
-  if(info.bizName){document.getElementById('f_biz').value=info.bizName;extracted.push('Business: '+info.bizName);}
-  if(info.address){document.getElementById('f_addr').value=info.address;extracted.push('Address found');}
-  if(info.bizType){
-    var sel=document.getElementById('f_biztype');
-    var opts=[].slice.call(sel.options);
-    var match=opts.find(function(o){return o.value===info.bizType;});
-    if(match){sel.value=info.bizType;extracted.push('Type: '+info.bizType);}
-  }
-  if(info.employees)document.getElementById('f_employees').value=String(info.employees).replace(/[^0-9]/g,'');
-  // Lead quality
-  if(info.temp){selTemp(info.temp);extracted.push('Temp: '+info.temp);}
-  if(info.status){document.getElementById('f_status').value=info.status;}
-  if(info.followupDate){document.getElementById('f_fudate').value=info.followupDate;extracted.push('Follow-up: '+info.followupDate);}
-  // Printers
-  if(info.printerCount){document.getElementById('f_pcount').value=info.printerCount;extracted.push('Printers: '+info.printerCount);}
-  if(info.totalPages){document.getElementById('f_tpages').value=info.totalPages;extracted.push('Pages/mo: '+info.totalPages);}
-  if(info.printers&&info.printers.length)(info.printers).forEach(function(p){if(p.brand||p.model)addPrinter(p);});
-  // Lease
-  if(info.hasLease){document.getElementById('f_lease').value=info.hasLease;if(info.hasLease==='yes')extracted.push('Has lease ✓');}
-  if(info.leaseend)document.getElementById('f_leaseend').value=info.leaseend;
-  if(info.leaseco){document.getElementById('f_leaseco').value=info.leaseco;extracted.push('Lease: '+info.leaseco);}
-  if(info.leaseamt)document.getElementById('f_leaseamt').value=String(info.leaseamt).replace(/[^0-9.]/g,'');
-  // Notes
-  if(info.notes)document.getElementById('f_notes').value=info.notes;
-  // Contacts spoken to
-  if(info.contacts&&info.contacts.length){
-    document.getElementById('cCont').innerHTML='';
-    info.contacts.forEach(function(c){if(c.name){addContact(c);extracted.push('Contact: '+c.name);}});
-  }
-  // Need to speak to
-  if(info.needContacts&&info.needContacts.length){
-    info.needContacts.forEach(function(c){if(c.name)addNeedContact(c);});
-  }
-  // Phone/email — merge with existing
-  if(info.phoneEmails&&info.phoneEmails.length){
-    document.getElementById('peCont').innerHTML='';
-    info.phoneEmails.forEach(function(p){if(p.value)addPE(p);});
-    var hasContact=info.phoneEmails.some(function(p){return p.value;});
-    if(hasContact)extracted.push('Phone/email added');
-  }
-  // Also check for standalone phone from biz search
-  if(info.phone&&info.phone.trim()){
-    var peContainer=document.getElementById('peCont');
-    var existing=[].slice.call(peContainer.querySelectorAll('[data-f="value"]'));
-    var hasPhone=existing.some(function(el){return el.value===info.phone;});
-    if(!hasPhone){addPE({type:'Phone',label:'Office',value:info.phone});extracted.push('Phone: '+info.phone);}
-  }
-  // Auto-geocode address for map pin
-  if(info.address){
-    geocodeAddress(info.address).then(function(coords){if(coords)pendingLatLng=coords;});
-  }
-  // Clear voice data
-  recordedTranscript='';
-  document.getElementById('voiceReadyBadge').style.display='none';
-  // Show summary
-  var resultEl=document.getElementById('voiceResult');
-  resultEl.innerHTML='<strong>✅ Claude filled in '+(extracted.length)+' fields:</strong><br>'+extracted.join(' · ');
-  resultEl.classList.add('show');
-}
-
-// Load saved Google key on settings open
-var _origShowScreen=showScreen;
-showScreen=function(name){
-  _origShowScreen(name);
-  if(name==='settings'){loadAnthropicKey();loadWorkerUrl();renderProfileSwitcher();renderUsageTracker();renderSigColorPicker();renderCustomLabelList();}
-};
-
-// ══ PROFILE SWITCHER ══════════════════════════════════════════════════
-var pendingSwitchUserId=null;
-
-function renderProfileSwitcher(){
-  var users=window._users||[];
-  var container=document.getElementById('profileSwitcherList');
-  if(!container)return;
-  if(!users.length){container.innerHTML='<div style="font-size:13px;color:var(--txt2)">No other profiles found.</div>';return;}
-  container.innerHTML=users.map(function(u){
-    var isMe=u.id===myId();
-    var hasPin=!!localStorage.getItem('cbs_pin_'+u.id);
-    return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bord)">' +
-      '<div style="width:38px;height:38px;border-radius:50%;background:'+u.color+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0">'+ini(u.name)+'</div>' +
-      '<div style="flex:1"><div style="font-weight:700;font-size:14px">'+u.name+'</div>' +
-      '<div style="font-size:11px;color:var(--txt2)">'+(isMe?'Current profile':((window._leads||[]).filter(function(l){return l.userId===u.id;}).length)+' prospects')+'</div></div>' +
-      (isMe
-        ? '<button onclick="openModal(\'setPinModal\')" style="background:var(--bg);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:6px 11px;font-size:11px;font-weight:600;font-family:var(--ff);cursor:pointer;color:var(--txt2)">'+(hasPin?'Change PIN':'Set PIN')+'</button>'
-        : '<button onclick="startProfileSwitch(this.dataset.uid,this.dataset.name)" data-uid="'+u.id+'" data-name="'+u.name.replace(/"/g,'&quot;')+'" style="background:var(--navy);color:#fff;border:none;border-radius:var(--rsm);padding:6px 14px;font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer">Switch →</button>'
-      ) +
-      '</div>';
-  }).join('');
-}
-
-function startProfileSwitch(elOrId,nameArg){
-  var userId,userName;
-  if(typeof elOrId==='object'&&elOrId.dataset){
-    userId=elOrId.dataset.uid;userName=elOrId.dataset.name;
-  } else {
-    userId=elOrId;userName=nameArg||'Profile';
-  }
-  var pin=localStorage.getItem('cbs_pin_'+userId);
-  if(pin){
-    // Require PIN
-    pendingSwitchUserId=userId;
-    document.getElementById('pinModalTitle').textContent='Switch to '+userName;
-    document.getElementById('pinInput').value='';
-    document.getElementById('pinError').style.display='none';
-    openModal('pinModal');
-  } else {
-    // No PIN set — switch directly
-    doProfileSwitch(userId);
-  }
-}
-
-function confirmPinSwitch(){
-  var entered=document.getElementById('pinInput').value.trim();
-  var correct=localStorage.getItem('cbs_pin_'+pendingSwitchUserId);
-  if(entered===correct){
-    closeModal('pinModal');
-    doProfileSwitch(pendingSwitchUserId);
-    pendingSwitchUserId=null;
-  } else {
-    document.getElementById('pinError').style.display='block';
-    document.getElementById('pinInput').value='';
-    document.getElementById('pinInput').focus();
-  }
-}
-
-function doProfileSwitch(userId){
-  // We don't sign in/out of Firebase — we just change which userId we're acting as
-  // The Firebase auth stays as the original user
-  // We store the "acting as" user separately
-  localStorage.setItem('cbs_acting_as',userId);
-  window._actingAs=userId;
-  updateHdrUser();
-  renderDashboard();
-  renderLeads();
-  renderProfileSwitcher();
-  // Show toast
-  var u=(window._users||[]).find(function(u){return u.id===userId;});
-  showToast('Switched to '+((u&&u.name)||'profile'));
-}
-
-function savePin(){
-  var pin=document.getElementById('newPinInput').value.trim();
-  var uid=myId();
-  if(pin&&pin.length!==4){alert('PIN must be exactly 4 digits.');return;}
-  if(pin&&!/^[0-9]{4}$/.test(pin)){alert('PIN must be 4 numbers only.');return;}
-  if(pin){localStorage.setItem('cbs_pin_'+uid,pin);}
-  else{localStorage.removeItem('cbs_pin_'+uid);}
-  closeModal('setPinModal');
-  renderProfileSwitcher();
-  showToast(pin?'PIN saved!':'PIN removed');
-}
-
-function showToast(msg){
-  var t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--navyd);color:#fff;padding:10px 20px;border-radius:20px;font-size:13px;font-weight:600;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,.3);white-space:nowrap;pointer-events:none';
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},2500);
-}
-
-// Override myId to use acting-as user when set
-var _origMyId=myId;
-myId=function(){
-  var acting=window._actingAs||localStorage.getItem('cbs_acting_as');
-  if(acting&&(window._users||[]).find(function(u){return u.id===acting;}))return acting;
-  return window._fbUser&&window._fbUser.uid;
-};
-
-// ══ USAGE TRACKER ═════════════════════════════════════════════════════
-function getUsageKey(){
-  var d=new Date();
-  return 'cbs_usage_'+d.getFullYear()+'_'+(d.getMonth()+1);
-}
-function getUsageCount(){
-  return parseInt(localStorage.getItem(getUsageKey())||'0');
-}
-function incrementUsage(){
-  var key=getUsageKey();
-  var count=parseInt(localStorage.getItem(key)||'0')+1;
-  localStorage.setItem(key,count.toString());
-  return count;
-}
-function getUsageLimit(){
-  return parseInt(localStorage.getItem('cbs_usage_limit')||'100');
-}
-function saveUsageLimit(){
-  var val=document.getElementById('usageLimitSel').value;
-  localStorage.setItem('cbs_usage_limit',val);
-  renderUsageTracker();
-}
-function resetUsage(){
-  if(!confirm('Reset the usage counter for this month?'))return;
-  localStorage.setItem(getUsageKey(),'0');
-  renderUsageTracker();
-}
-function checkUsageLimit(){
-  var limit=getUsageLimit();
-  if(limit===0)return true; // no limit
-  var count=getUsageCount();
-  if(count>=limit){
-    alert('⚠️ Monthly AI request limit reached ('+limit+' requests). Reset the counter in Settings, or increase your limit.');
-    return false;
-  }
-  return true;
-}
-function renderUsageTracker(){
-  var count=getUsageCount();
-  var limit=getUsageLimit();
-  var countEl=document.getElementById('usageCount');
-  var barEl=document.getElementById('usageBar');
-  var limitEl=document.getElementById('usageLimitLabel');
-  var warnEl=document.getElementById('usageWarning');
-  var selEl=document.getElementById('usageLimitSel');
-  var monthEl=document.getElementById('usageMonth');
-  if(!countEl)return;
-  var d=new Date();
-  if(monthEl)monthEl.textContent=d.toLocaleDateString('en-US',{month:'long',year:'numeric'})+' (key: '+getUsageKey()+')';
-  countEl.textContent=count+' request'+(count!==1?'s':'')+' this month';
-  if(selEl)selEl.value=String(limit);
-  if(limit>0){
-    var pct=Math.min(count/limit*100,100);
-    if(barEl){
-      barEl.style.width=pct+'%';
-      barEl.style.background=pct>=90?'var(--hot)':pct>=70?'var(--warm)':'var(--green)';
-    }
-    if(limitEl)limitEl.textContent='Limit: '+limit+'/month';
-    if(warnEl){
-      if(pct>=100){warnEl.textContent='🛑 Limit reached — AI features disabled until you reset or increase the limit.';warnEl.style.display='block';}
-      else if(pct>=80){warnEl.textContent='⚠️ '+(limit-count)+' requests remaining this month.';warnEl.style.display='block';}
-      else{warnEl.style.display='none';}
-    }
-  } else {
-    if(barEl)barEl.style.width='0%';
-    if(limitEl)limitEl.textContent='No limit set';
-    if(warnEl)warnEl.style.display='none';
-  }
-}
-
-// ── ADDRESS AUTOCOMPLETE (Nominatim, NorCal bounded) ─────────────────
-var addrTimer=null;
-function addrAutocomplete(val){
-  clearTimeout(addrTimer);
-  var box=document.getElementById('addrSuggestions');
-  if(!val||val.length<4){box.style.display='none';return;}
-  addrTimer=setTimeout(function(){
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(val)+'&addressdetails=1&limit=5&bounded=1&viewbox=-124.5,42.1,-120.0,39.5&countrycodes=us')
-      .then(function(r){return r.json();})
-      .then(function(results){
-        if(!results||!results.length){box.style.display='none';return;}
-        box.innerHTML=results.map(function(r){
-          var display=r.display_name.replace(/,\s*United States$/,'');
-          var safeDisplay=display.replace(/'/g,'&#39;').replace(/"/g,'&quot;');return '<div class="addr-suggestion" onmousedown="selectAddr(\'' + safeDisplay + '\')">'+display+'</div>';
-        }).join('');
-        box.style.display='block';
-      }).catch(function(){box.style.display='none';});
-  },400);
-}
-function selectAddr(addr){
-  document.getElementById('f_addr').value=addr;
-  document.getElementById('addrSuggestions').style.display='none';
-}
-function closeAddrSuggestions(){
-  var box=document.getElementById('addrSuggestions');
-  if(box)box.style.display='none';
-}
-
-// ── GEOCODE ADDRESS → LAT/LNG ─────────────────────────────────────────
-function geocodeAddress(addr){
-  if(!addr)return Promise.resolve(null);
-  return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr)+'&limit=1&bounded=1&viewbox=-124.5,42.1,-120.0,39.5&countrycodes=us')
-    .then(function(r){return r.json();})
-    .then(function(res){
-      if(res&&res[0])return{lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)};
-      // Try without bounds for addresses slightly outside
-      return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(addr+', California')+'&limit=1&countrycodes=us')
-        .then(function(r2){return r2.json();})
-        .then(function(res2){return res2&&res2[0]?{lat:parseFloat(res2[0].lat),lng:parseFloat(res2[0].lon)}:null;});
-    }).catch(function(){return null;});
-}
-
-// ── VOICE RECORDING + AI EXTRACTION ──────────────────────────────────
-var mediaRecorder=null;var audioChunks=[];var isRecording=false;
-
-function toggleRecording(){
-  if(isRecording){stopRecording();}
-  else{startRecording();}
-}
-
-function startRecording(){
-  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
-    alert('Voice recording is not supported on this browser. Please use Safari on iPhone or Chrome on Android.');return;
-  }
-  // Reset previous recording state
-  recordedTranscript='';
-  window._pendingAudioBlob=null;
-  var badge=document.getElementById('voiceReadyBadge');
-  if(badge)badge.style.display='none';
-  document.getElementById('voiceResult').classList.remove('show');
-
-  // Start Web Speech recognition for live transcription (free)
-  var liveTranscript='';
-  var recognition=null;
-  if(window.SpeechRecognition||window.webkitSpeechRecognition){
-    var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
-    recognition=new SR();
-    recognition.continuous=true;recognition.interimResults=true;recognition.lang='en-US';
-    recognition.onresult=function(e){
-      var interim='';
-      for(var i=e.resultIndex;i<e.results.length;i++){
-        if(e.results[i].isFinal)liveTranscript+=e.results[i][0].transcript+' ';
-        else interim+=e.results[i][0].transcript;
-      }
-      document.getElementById('voiceStatus').textContent='🔴 '+liveTranscript+interim;
-    };
-    recognition.onerror=function(){};
-    recognition.start();
-  }
-
-  navigator.mediaDevices.getUserMedia({audio:true}).then(function(stream){
-    audioChunks=[];
-    var mimeType='audio/webm';
-    if(!MediaRecorder.isTypeSupported('audio/webm'))mimeType='audio/mp4';
-    if(!MediaRecorder.isTypeSupported(mimeType))mimeType='';
-    mediaRecorder=new MediaRecorder(stream,mimeType?{mimeType:mimeType}:{});
-    mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)audioChunks.push(e.data);};
-    mediaRecorder.onstop=function(){
-      if(recognition)try{recognition.stop();}catch(e){}
-      recordedTranscript=liveTranscript.trim();
-      processVoiceNote(mimeType||'audio/mp4');
-      stream.getTracks().forEach(function(t){t.stop();});
-    };
-    mediaRecorder.start();
-    isRecording=true;
-    document.getElementById('voiceBtn').classList.add('recording');
-    document.getElementById('voiceBtn').innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg> Tap to Stop Recording';
-    document.getElementById('voiceStatus').textContent='🔴 Recording… speak naturally about this prospect';
-  }).catch(function(err){
-    if(recognition)try{recognition.stop();}catch(e){}
+  })
+  .catch(function(err){if(recognition)try{recognition.stop();}catch(e){}
     alert('Could not access microphone. Please allow microphone access and try again. Error: '+err.message);
-  });
-}
+  });}
 
 function stopRecording(){
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}
@@ -2682,10 +2326,7 @@ function extractInfoFromAudio(base64Audio,mimeType){
     return;
   }
   if(!checkUsageLimit()){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='Monthly limit reached. See Settings to adjust.';return;}
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
-    body:JSON.stringify({
+  claudeApiFetch({
       model:'claude-sonnet-4-20250514',
       max_tokens:1000,
       messages:[{
@@ -2695,8 +2336,7 @@ function extractInfoFromAudio(base64Audio,mimeType){
           {type:'document',source:{type:'base64',media_type:mimeType,data:base64Audio}}
         ]
       }]
-    })
-  }).then(function(r){return r.json();})
+    },akey)
   .then(function(data){
     document.getElementById('aiProcessing').classList.remove('show');
     var text='';
@@ -2717,12 +2357,11 @@ function extractInfoFromAudio(base64Audio,mimeType){
       document.getElementById('f_notes').value=text;
       document.getElementById('voiceStatus').textContent='✅ Transcribed — review notes field';
     }
-  }).catch(function(err){
-    document.getElementById('aiProcessing').classList.remove('show');
+  })
+  .catch(function(err){document.getElementById('aiProcessing').classList.remove('show');
     // Fallback to Web Speech API
     transcribeWithWebSpeech();
-  });
-}
+  });}
 
 function transcribeWithWebSpeech(){
   // Fallback: use Web Speech API for transcription, then send text to Claude
@@ -2750,11 +2389,7 @@ function extractInfoFromText(transcript){
   var akey=localStorage.getItem('cbs_akey')||'';
   if(!akey){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='⚠️ Add your Anthropic API key in Settings to use AI voice notes.';return;}
   if(!checkUsageLimit()){document.getElementById('aiProcessing').classList.remove('show');document.getElementById('voiceStatus').textContent='Monthly limit reached. See Settings to adjust.';return;}
-  fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':akey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-iab-support':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-  }).then(function(r){return r.json();})
+  claudeApiFetch({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]},akey)
   .then(function(data){
     document.getElementById('aiProcessing').classList.remove('show');
     incrementUsage();
