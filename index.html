@@ -3460,6 +3460,99 @@ function setLeadColor(el){
     showToast(label?'Label set: '+label:'Temperature set: '+temp);
   });
 }
+
+// ── ADDRESS AUTOCOMPLETE ───────────────────────────────────────────────
+var addrTimer = null;
+var addrCache = {};
+
+function addrAutocomplete(val) {
+  var q = (val || '').trim();
+  var box = document.getElementById('addrSuggestions');
+  if (!box) return;
+
+  // Hide if too short
+  if (q.length < 4) { box.style.display = 'none'; return; }
+
+  // Debounce — wait 350ms after typing stops
+  clearTimeout(addrTimer);
+  addrTimer = setTimeout(function() { addrFetch(q, box); }, 350);
+}
+
+function addrFetch(q, box) {
+  // Return cached result instantly
+  if (addrCache[q]) { addrShow(addrCache[q], box); return; }
+
+  // NorCal bounding box: SW 38.5,-124.5  NE 42.2,-119.5
+  var url = 'https://nominatim.openstreetmap.org/search' +
+    '?format=json&addressdetails=1&limit=6&countrycodes=us' +
+    '&viewbox=-124.5,38.5,-119.5,42.2&bounded=1' +
+    '&q=' + encodeURIComponent(q + ' California');
+
+  fetch(url, { headers: { 'Accept-Language': 'en-US,en' } })
+    .then(function(r) { return r.json(); })
+    .then(function(results) {
+      // Filter to only results with a real house number
+      var filtered = results.filter(function(r) {
+        var a = r.address || {};
+        return a.house_number || a.road;
+      });
+      addrCache[q] = filtered;
+      addrShow(filtered, box);
+    })
+    .catch(function() { box.style.display = 'none'; });
+}
+
+function addrShow(results, box) {
+  if (!box) return;
+  if (!results || !results.length) { box.style.display = 'none'; return; }
+
+  box.innerHTML = '';
+  results.forEach(function(res) {
+    var a = res.address || {};
+    // Build a clean display string
+    var house  = a.house_number || '';
+    var road   = a.road || a.pedestrian || '';
+    var city   = a.city || a.town || a.village || a.county || '';
+    var state  = a.state || 'CA';
+    var zip    = a.postcode || '';
+
+    var street = house ? house + ' ' + road : road;
+    var full   = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+
+    if (!street || !city) return; // skip vague results
+
+    var item = document.createElement('div');
+    item.className = 'addr-suggestion-item';
+    item.style.cssText = 'padding:10px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--bord);color:var(--txt)';
+    item.textContent = full;
+
+    item.addEventListener('mousedown', function(e) {
+      e.preventDefault(); // prevent blur before click registers
+      document.getElementById('f_addr').value = full;
+      box.style.display = 'none';
+      // Auto-geocode the selection
+      if (res.lat && res.lon) {
+        window.pendingLatLng = { lat: parseFloat(res.lat), lng: parseFloat(res.lon) };
+      }
+    });
+
+    item.addEventListener('mouseover', function() {
+      this.style.background = 'var(--bg)';
+    });
+    item.addEventListener('mouseout', function() {
+      this.style.background = '';
+    });
+
+    box.appendChild(item);
+  });
+
+  box.style.display = results.length ? 'block' : 'none';
+}
+
+function closeAddrSuggestions() {
+  var box = document.getElementById('addrSuggestions');
+  if (box) box.style.display = 'none';
+}
 </script>
 </body>
 </html>
