@@ -1312,29 +1312,126 @@ function collectEntries(cid,t){
   document.getElementById(cid).querySelectorAll('[data-t="'+t+'"]').forEach(function(e){if(!g[e.dataset.id])g[e.dataset.id]={};g[e.dataset.id][e.dataset.f]=e.value;});
   return Object.values(g).filter(function(o){return Object.values(o).some(function(v){return v;});});
 }
+// Safe form value helpers
+function gv(id){var e=document.getElementById(id);return e?(e.value||''):''}
+function gb(id){var e=document.getElementById(id);return e?!!e.checked:false;}
+
 function saveLead(){
-  const noteText=document.getElementById('f_notes').value.trim();
-  const data={bizName:document.getElementById('f_biz').value.trim(),address:document.getElementById('f_addr').value.trim(),website:(document.getElementById('f_website').value||'').trim().replace(/^https?:\/\//i,''),bizType:document.getElementById('f_biztype').value,employees:document.getElementById('f_employees').value,temp:cTemp,status:document.getElementById('f_status').value,followupDate:document.getElementById('f_fudate').value,starred:document.getElementById('f_starred').checked,contacts:collectEntries('cCont','c'),needContacts:collectEntries('nCont','n'),phoneEmails:collectEntries('peCont','pe'),printerCount:document.getElementById('f_pcount').value,totalPages:document.getElementById('f_tpages').value,printers:collectEntries('prCont','pr'),hasLease:document.getElementById('f_lease').value,leaseend:document.getElementById('f_leaseend').value,leaseco:document.getElementById('f_leaseco').value.trim(),leaseamt:document.getElementById('f_leaseamt').value,hubspotId:(document.getElementById('f_hubspotId').value||'').trim(),userId:myId(),lat:pendingLatLng&&pendingLatLng.lat||null,lng:pendingLatLng&&pendingLatLng.lng||null,pinColor:pinColor,customLabel:(document.getElementById('f_customLabel')&&document.getElementById('f_customLabel').value)||''};
+  // Close any open address suggestions first
+  closeAddrSuggestions();
+
+  var bizName=(document.getElementById('f_biz').value||'').trim();
+  if(!bizName){alert('Please enter a business name.');return;}
+
+  // Duplicate check for new leads
+  if(!editId){
+    var dup=typeof checkDuplicate==='function'?checkDuplicate(bizName):null;
+    if(dup){
+      var msg='A business named "'+dup.bizName+'" already exists'+(dup.userId!==myId()?' (added by '+((window._users||[]).find(function(u){return u.id===dup.userId;})||{name:'another user'}).name+')':'')+'. Add anyway?';
+      if(!confirm(msg))return;
+    }
+  }
+
+  // Safely collect all form data - helpers defined at module level
+
+  var addr=gv('f_addr').trim();
+  var data={
+    bizName:bizName,
+    address:addr,
+    website:gv('f_website').trim().replace(/^https?:\/\//i,''),
+    bizType:gv('f_biztype'),
+    employees:gv('f_employees'),
+    temp:cTemp,
+    status:gv('f_status'),
+    followupDate:gv('f_fudate'),
+    starred:gb('f_starred'),
+    contacts:collectEntries('cCont','c'),
+    needContacts:collectEntries('nCont','n'),
+    phoneEmails:collectEntries('peCont','pe'),
+    printerCount:gv('f_pcount'),
+    totalPages:gv('f_tpages'),
+    printers:collectEntries('prCont','pr'),
+    hasLease:gv('f_lease'),
+    leaseend:gv('f_leaseend'),
+    leaseco:gv('f_leaseco').trim(),
+    leaseamt:gv('f_leaseamt'),
+    hubspotId:gv('f_hubspotId').trim(),
+    customLabel:gv('f_customLabel'),
+    userId:myId(),
+    lat:pendingLatLng&&pendingLatLng.lat||null,
+    lng:pendingLatLng&&pendingLatLng.lng||null,
+    pinColor:pinColor
+  };
+
   if(editId){
-    const l=(window._leads||[]).find(function(x){return x.id===editId;});
-    if(noteText&&l){const n=now();data.visits=[...(l.visits||[]),{date:n,notes:noteText}];data.lastVisitAt=n;}
-    // Never overwrite createdAt on edit - preserves original visit order
-    delete data.createdAt;
+    // Editing existing lead
+    var l=(window._leads||[]).find(function(x){return x.id===editId;});
+    var noteText=gv('f_notes').trim();
+    if(noteText&&l){
+      // Use custom visit date/time if set, else now
+      var visitD=now();
+      var fvd=document.getElementById('f_visitdate');
+      var fvt=document.getElementById('f_visittime');
+      if(fvd&&fvd.value){
+        var vt=fvt&&fvt.value?fvt.value:'12:00';
+        var dtLocal=new Date(fvd.value+'T'+vt+':00');
+        var off=-dtLocal.getTimezoneOffset();
+        var sign=off>=0?'+':'-';
+        var ah=String(Math.floor(Math.abs(off)/60)).padStart(2,'0');
+        var am=String(Math.abs(off)%60).padStart(2,'0');
+        visitD=dtLocal.getFullYear()+'-'+String(dtLocal.getMonth()+1).padStart(2,'0')+'-'+String(dtLocal.getDate()).padStart(2,'0')
+          +'T'+String(dtLocal.getHours()).padStart(2,'0')+':'+String(dtLocal.getMinutes()).padStart(2,'0')+':00'+sign+ah+':'+am;
+      }
+      data.visits=[...(l.visits||[]),{date:visitD,notes:noteText}];
+      data.lastVisitAt=data.visits.reduce(function(mx,v){return v.date>mx?v.date:mx;},visitD);
+    }
+    delete data.createdAt; // never overwrite original timestamp
     window.fbSaveLead(data,editId);
   } else {
-    var visitD=now();
-    var fvd=document.getElementById('f_visitdate');
-    var fvt=document.getElementById('f_visittime');
-    if(fvd&&fvd.value){
-      var vt=fvt&&fvt.value?fvt.value:'12:00';
-      visitD=new Date(fvd.value+'T'+vt+':00').toISOString();
+    // New lead — use custom visit date/time
+    var visitD2=now();
+    var fvd2=document.getElementById('f_visitdate');
+    var fvt2=document.getElementById('f_visittime');
+    if(fvd2&&fvd2.value){
+      var vt2=fvt2&&fvt2.value?fvt2.value:'12:00';
+      var dtLocal2=new Date(fvd2.value+'T'+vt2+':00');
+      var off2=-dtLocal2.getTimezoneOffset();
+      var sign2=off2>=0?'+':'-';
+      var ah2=String(Math.floor(Math.abs(off2)/60)).padStart(2,'0');
+      var am2=String(Math.abs(off2)%60).padStart(2,'0');
+      visitD2=dtLocal2.getFullYear()+'-'+String(dtLocal2.getMonth()+1).padStart(2,'0')+'-'+String(dtLocal2.getDate()).padStart(2,'0')
+        +'T'+String(dtLocal2.getHours()).padStart(2,'0')+':'+String(dtLocal2.getMinutes()).padStart(2,'0')+':00'+sign2+ah2+':'+am2;
     }
-    data.visits=noteText?[{date:visitD,notes:noteText}]:[];
-    data.lastVisitAt=visitD;
-    data.createdAt=visitD; // createdAt = first visit time
+    var noteText2=gv('f_notes').trim();
+    data.visits=noteText2?[{date:visitD2,notes:noteText2}]:[];
+    data.lastVisitAt=visitD2;
+    data.createdAt=visitD2;
     window.fbSaveLead(data,null);
   }
-  pendingLatLng=null;closeModal('leadModal');showScreen('leads');
+
+  // Geocode in background AFTER saving — never blocks
+  if(addr&&!data.lat){
+    var savedId=editId;
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q='
+      +encodeURIComponent(addr+' California')+'&limit=1&countrycodes=us',
+      {headers:{'Accept-Language':'en-US,en'}})
+    .then(function(r){return r.json();})
+    .then(function(res){
+      if(res&&res[0]){
+        var coords={lat:parseFloat(res[0].lat),lng:parseFloat(res[0].lon)};
+        // Update the lead with geocoords
+        var leads=window._leads||[];
+        var lead=savedId
+          ?leads.find(function(l){return l.id===savedId;})
+          :leads.find(function(l){return l.bizName===bizName&&!l.lat;});
+        if(lead&&lead.id)window.fbUpdateLead(lead.id,coords);
+      }
+    }).catch(function(){});
+  }
+
+  pendingLatLng=null;
+  closeModal('leadModal');
+  showScreen('leads');
 }
 
 // ── MAP (iframe-based) ─────────────────────────────────
@@ -2480,24 +2577,6 @@ function applyVoiceExtraction(info){
   document.getElementById('voiceStatus').textContent='Review the form — all extracted info has been filled in!';
 }
 
-// ── OVERRIDE saveLead to auto-geocode ─────────────────────────────────
-var _origSaveLead=saveLead;
-saveLead=function(){
-  var addr=document.getElementById('f_addr').value.trim();
-  // If we already have a pending pin location from map, just save
-  if(pendingLatLng||!addr){_origSaveLead();return;}
-  // Try to geocode the address first
-  var btn=document.querySelector('#leadModal .btn-gold');
-  if(btn){btn.textContent='📍 Locating address…';btn.disabled=true;}
-  geocodeAddress(addr).then(function(coords){
-    if(coords)pendingLatLng=coords;
-    if(btn){btn.innerHTML='✓ Save Prospect';btn.disabled=false;}
-    _origSaveLead();
-  }).catch(function(){
-    if(btn){btn.innerHTML='✓ Save Prospect';btn.disabled=false;}
-    _origSaveLead();
-  });
-};
 
 // ── OFFLINE INDICATOR ─────────────────────────────────────────────────
 window.addEventListener('online',function(){
@@ -2530,19 +2609,6 @@ function checkDuplicate(bizName){
   });
 }
 
-// Override saveLead to check duplicates
-var _origSaveLeadFn=saveLead;
-saveLead=function(){
-  if(!editId){
-    var bizName=document.getElementById('f_biz').value.trim();
-    var dup=checkDuplicate(bizName);
-    if(dup){
-      var msg='⚠️ "'+dup.bizName+'" already exists in your database'+(dup.userId!==myId()?' (added by another user)':'')+'. Add anyway?';
-      if(!confirm(msg))return;
-    }
-  }
-  _origSaveLeadFn();
-};
 
 // ── SMART MILEAGE CALCULATION ─────────────────────────────────────────
 // HQ coords (Coastal Business Systems, Redding CA)
