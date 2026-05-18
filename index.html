@@ -715,7 +715,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 </div>
 <div style="font-size:11px;color:var(--txt2);margin-bottom:8px">Leave blank for right now — or set a past date to log a retroactive visit.</div>
 <div class="field"><label>Notes</label><textarea id="f_notes" placeholder="What happened? Key observations, objections, next steps…"></textarea></div>
-</div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="saveLead()">✓ Save Prospect</button></div></div></div>
+</div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="closeModal('leadModal')">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="closeAddrSuggestions();saveLead()">✓ Save Prospect</button></div></div></div>
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -1005,12 +1005,42 @@ function renderToday(){
     } else if(hasGps&&typeof calcSmartMileage==='function'){
       miles=ignoreGaps?calcSmartMileageOneTrip(todayL):calcSmartMileage(todayL);
       milesLabel=miles+' mi (GPS)';
-      milesNote=ignoreGaps?'All visits treated as one trip — HQ → stops → HQ':'HQ to all stops and back (1hr gap = new trip)';
+      milesNote=ignoreGaps?'All visits treated as one trip':'HQ to all stops and back (1hr gap = new trip)';
     } else {
       miles=todayL.filter(function(l){return l.address;}).length*8;
       milesLabel='~'+miles+' mi (est.)';milesNote='Rough estimate — add GPS pins for accurate mileage';
     }
-    h+='<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px"><div style="font-size:26px;font-weight:700;color:var(--navy);font-family:var(--fd)">'+milesLabel+'</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">'+milesNote+'</div></div><div class="sec">Businesses Visited</div>'+todayL.map(function(l){return liHtml(l);}).join('');
+    h+='<div style="background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:12px 15px;text-align:center;margin-bottom:13px"><div style="font-size:26px;font-weight:700;color:var(--navy);font-family:var(--fd)">'+milesLabel+'</div><div style="font-size:12px;color:var(--txt2);margin-top:2px">'+milesNote+'</div></div>';
+    // Build chronological visit list with times
+    var todayVisits=[];
+    todayL.forEach(function(l){
+      (l.visits||[]).forEach(function(v){
+        if(localDateStr(v.date)===t){
+          todayVisits.push({lead:l,visit:v,dt:new Date(v.date)});
+        }
+      });
+    });
+    // Sort chronologically - earliest first
+    todayVisits.sort(function(a,b){return a.dt-b.dt;});
+    // One entry per lead (keep earliest visit)
+    var seenLeads={};
+    var sortedItems=[];
+    todayVisits.forEach(function(item){
+      if(!seenLeads[item.lead.id]){seenLeads[item.lead.id]=true;sortedItems.push(item);}
+    });
+    h+='<div class="sec">Businesses Visited — in order</div>';
+    sortedItems.forEach(function(item){
+      var timeStr=item.dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      var cm={hot:'#c0392b',warm:'#e67e22',cool:'#2471a3',cold:'#7f8c8d'};
+      var col=cm[item.lead.temp]||'#7f8c8d';
+      h+='<div style="display:flex;align-items:flex-start;gap:9px;margin-bottom:8px">'
+        +'<div style="background:var(--surf);border:1.5px solid '+col+';border-radius:var(--rsm);padding:5px 8px;'
+        +'flex-shrink:0;min-width:58px;text-align:center;margin-top:2px">'
+        +'<div style="font-size:11px;font-weight:700;color:'+col+'">'+timeStr+'</div>'
+        +'</div>'
+        +'<div style="flex:1">'+liHtml(item.lead)+'</div>'
+        +'</div>';
+    });
   } else {
     h+='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><p>No visits today</p><small>Get out there and prospect!</small></div>';
   }
@@ -3403,7 +3433,17 @@ function applyCustomLabelColor(){
 var _origOpenNew=openNewLead;
 openNewLead=function(prefill){
   _origOpenNew(prefill);
-  setTimeout(function(){populateCustomLabelSelector('');},50);
+  setTimeout(function(){
+    populateCustomLabelSelector('');
+    // Pre-fill visit date/time to now for new leads
+    var fvd=document.getElementById('f_visitdate');
+    var fvt=document.getElementById('f_visittime');
+    if(fvd&&!fvd.value){fvd.value=today();}
+    if(fvt&&!fvt.value){
+      var n=new Date();
+      fvt.value=String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');
+    }
+  },50);
 };
 var _origOpenEdit=openEditLead;
 openEditLead=function(id){
@@ -3479,22 +3519,38 @@ function addrAutocomplete(val) {
 }
 
 function addrFetch(q, box) {
-  // Return cached result instantly
   if (addrCache[q]) { addrShow(addrCache[q], box); return; }
 
-  // NorCal bounding box: SW 38.5,-124.5  NE 42.2,-119.5
+  // Show instant "Searching..." feedback
+  box.innerHTML = '<div style="padding:10px 13px;font-size:12px;color:var(--txt2)">Searching…</div>';
+  box.style.display = 'block';
+
+  // Search with NorCal bias — try named business first
   var url = 'https://nominatim.openstreetmap.org/search' +
-    '?format=json&addressdetails=1&limit=6&countrycodes=us' +
+    '?format=json&addressdetails=1&limit=8&countrycodes=us' +
     '&viewbox=-124.5,38.5,-119.5,42.2&bounded=1' +
     '&q=' + encodeURIComponent(q + ' California');
 
   fetch(url, { headers: { 'Accept-Language': 'en-US,en' } })
     .then(function(r) { return r.json(); })
     .then(function(results) {
-      // Filter to only results with a real house number
-      var filtered = results.filter(function(r) {
-        var a = r.address || {};
-        return a.house_number || a.road;
+      // Build clean address strings, deduplicate
+      var seen = {};
+      var filtered = [];
+      results.forEach(function(res) {
+        var a = res.address || {};
+        var house = a.house_number || '';
+        var road  = a.road || a.pedestrian || a.footway || '';
+        var city  = a.city || a.town || a.village || a.county || '';
+        var state = a.state || 'CA';
+        var zip   = a.postcode || '';
+        var street = house ? house + ' ' + road : road;
+        if (!street || !city) return;
+        var full = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+        if (seen[full]) return;
+        seen[full] = true;
+        res._displayAddr = full;
+        filtered.push(res);
       });
       addrCache[q] = filtered;
       addrShow(filtered, box);
@@ -3504,49 +3560,51 @@ function addrFetch(q, box) {
 
 function addrShow(results, box) {
   if (!box) return;
-  if (!results || !results.length) { box.style.display = 'none'; return; }
-
+  if (!results || !results.length) {
+    box.innerHTML = '<div style="padding:10px 13px;font-size:12px;color:var(--txth)">No results found — try adding the city name</div>';
+    box.style.display = 'block';
+    setTimeout(function(){ box.style.display='none'; }, 2000);
+    return;
+  }
   box.innerHTML = '';
   results.forEach(function(res) {
-    var a = res.address || {};
-    // Build a clean display string
-    var house  = a.house_number || '';
-    var road   = a.road || a.pedestrian || '';
-    var city   = a.city || a.town || a.village || a.county || '';
-    var state  = a.state || 'CA';
-    var zip    = a.postcode || '';
-
-    var street = house ? house + ' ' + road : road;
-    var full   = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
-
-    if (!street || !city) return; // skip vague results
-
+    var full = res._displayAddr;
+    if (!full) {
+      var a = res.address || {};
+      var house = a.house_number || '';
+      var road  = a.road || '';
+      var city  = a.city || a.town || a.village || '';
+      var state = a.state || 'CA';
+      var zip   = a.postcode || '';
+      var street = house ? house + ' ' + road : road;
+      full = [street, city, state + (zip ? ' ' + zip : '')].filter(Boolean).join(', ');
+    }
+    if (!full) return;
     var item = document.createElement('div');
-    item.className = 'addr-suggestion-item';
-    item.style.cssText = 'padding:10px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--bord);color:var(--txt)';
+    item.style.cssText = 'padding:10px 13px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--bord);color:var(--txt);line-height:1.3';
     item.textContent = full;
-
     item.addEventListener('mousedown', function(e) {
-      e.preventDefault(); // prevent blur before click registers
-      document.getElementById('f_addr').value = full;
+      e.preventDefault();
+      var inp = document.getElementById('f_addr');
+      if (inp) inp.value = full;
       box.style.display = 'none';
-      // Auto-geocode the selection
       if (res.lat && res.lon) {
         window.pendingLatLng = { lat: parseFloat(res.lat), lng: parseFloat(res.lon) };
       }
     });
-
-    item.addEventListener('mouseover', function() {
-      this.style.background = 'var(--bg)';
-    });
-    item.addEventListener('mouseout', function() {
-      this.style.background = '';
-    });
-
+    item.addEventListener('touchstart', function(e) {
+      var inp = document.getElementById('f_addr');
+      if (inp) inp.value = full;
+      box.style.display = 'none';
+      if (res.lat && res.lon) {
+        window.pendingLatLng = { lat: parseFloat(res.lat), lng: parseFloat(res.lon) };
+      }
+    }, {passive:true});
+    item.addEventListener('mouseover', function() { this.style.background = 'var(--bg)'; });
+    item.addEventListener('mouseout',  function() { this.style.background = ''; });
     box.appendChild(item);
   });
-
-  box.style.display = results.length ? 'block' : 'none';
+  box.style.display = 'block';
 }
 
 function closeAddrSuggestions() {
