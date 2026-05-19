@@ -110,6 +110,27 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 .ve{border-left:3px solid var(--gold);padding-left:11px;margin-bottom:14px}
 .vd{font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
 .vn{font-size:13px;color:var(--txt);line-height:1.5}
+/* VISIT EDIT / VOICE / PHOTO */
+.ve-actions{display:flex;gap:6px;margin-top:6px}
+.ve-action-btn{background:none;border:1px solid var(--bord);border-radius:var(--rsm);padding:3px 9px;font-size:11px;font-weight:600;color:var(--txt2);cursor:pointer;font-family:var(--ff)}
+.ve-action-btn:active{background:var(--bg)}
+.ve-editor{background:var(--bg);border:1.5px solid var(--navy);border-radius:var(--rsm);padding:11px;margin-top:8px}
+.ve-editor label{font-size:10px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:3px}
+.ve-editor input,.ve-editor textarea{width:100%;padding:7px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:13px;font-family:var(--ff);background:var(--surf);color:var(--txt);margin-bottom:8px}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.photo-thumb{position:relative;aspect-ratio:1;border-radius:var(--rsm);overflow:hidden;background:var(--bg);cursor:pointer}
+.photo-thumb img{width:100%;height:100%;object-fit:cover}
+.photo-del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.voice-clip{display:flex;align-items:center;gap:9px;background:var(--bg);border:1px solid var(--bord);border-radius:var(--rsm);padding:9px 11px;margin-bottom:7px}
+.voice-clip audio{flex:1;height:32px;min-width:0}
+.voice-clip-del{background:none;border:none;color:var(--txth);font-size:20px;cursor:pointer;flex-shrink:0;padding:0 3px}
+.voice-clip-lbl{font-size:11px;color:var(--txt2);flex-shrink:0}
+.rec-btn{display:flex;align-items:center;gap:7px;background:var(--surf);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:9px 14px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer;color:var(--txt);width:100%}
+.rec-btn.recording{border-color:#c0392b;color:#c0392b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+.lightbox{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;align-items:center;justify-content:center}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:var(--rsm);object-fit:contain}
+.lightbox-close{position:absolute;top:16px;right:16px;background:none;border:none;color:#fff;font-size:30px;cursor:pointer}
 .fubar{background:var(--goldp);border:1px solid var(--gold);border-radius:var(--rsm);padding:9px 13px;font-size:12px;color:var(--navy);display:flex;align-items:center;gap:7px;margin-bottom:11px;cursor:pointer}
 .sec{font-size:11px;font-weight:700;color:var(--txt2);text-transform:uppercase;letter-spacing:.7px;margin:16px 0 9px}
 .divider{height:1px;background:var(--bord);margin:12px 0}
@@ -498,210 +519,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   </button>
 </div>
 <div class="sec">Install on Phone</div>
-      <div class="card"><div class="card-bd">
-        <div style="margin-bottom:12px"><div style="font-weight:700;margin-bottom:4px">📱 iPhone (Safari)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open this URL in Safari<br>2. Tap the Share button (↑)<br>3. "Add to Home Screen" → Add</div></div>
-        <div><div style="font-weight:700;margin-bottom:4px">🤖 Android (Chrome)</div><div style="font-size:13px;color:var(--txt2);line-height:1.6">1. Open in Chrome<br>2. Tap ⋮ → "Add to Home screen"</div></div>
-      </div></div>
-      <div style="height:70px"></div>
-    </div>
-
-    <div class="screen" id="screen-detail"><div id="detailContent"></div><div style="height:70px"></div></div>
-
-  </div>
-
-  <div class="quick-add-bar" id="quickAddBar" style="display:none">
-    <input type="text" id="qa_biz" placeholder="Business name — tap map to place pin">
-    <button onclick="quickSave()">Save</button>
-  </div>
-
-  <button class="fab" id="mainFab" onclick="openNewLead()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-  </button>
-
-  <nav class="bnav">
-    <button class="nbtn active" id="nav-dashboard" onclick="showScreen('dashboard')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dash
-    </button>
-    <button class="nbtn" id="nav-leads" onclick="showScreen('leads')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>Leads
-    </button>
-    <button class="nbtn" id="nav-map" onclick="showScreen('map')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map
-    </button>
-    <button class="nbtn" id="nav-today" onclick="showScreen('today')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Today
-    </button>
-    <button class="nbtn" id="nav-analytics" onclick="showScreen('analytics')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Stats
-    </button>
-    <button class="nbtn" id="nav-settings" onclick="showScreen('settings')">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
-    </button>
-  </nav>
-</div>
-
-<!-- MODALS -->
-<div class="overlay" id="acctModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">My Account</div><div class="modal-body"><div style="display:flex;align-items:center;gap:13px;padding:8px 0 18px"><div id="acctAv" style="width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0;background:var(--navy)"></div><div><div style="font-weight:700;font-size:16px;color:var(--txt)" id="acctName"></div><div style="font-size:12px;color:var(--txt2)" id="acctEmail"></div></div></div><button class="btn btn-danger" style="width:100%" onclick="doSignOut()">Sign Out</button></div></div></div>
-
-<div class="overlay" id="apptModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="apptModalTitle">Schedule Appointment</div>
-    <div class="modal-body">
-      <div class="field"><label>Business</label>
-        <select id="appt_lead" style="background:var(--surf);color:var(--txt)"></select>
-      </div>
-      <div class="field2">
-        <div><label>Date</label><input type="date" id="appt_date"></div>
-        <div><label>Time</label><input type="time" id="appt_time"></div>
-      </div>
-      <div class="field"><label>Notes</label><input type="text" id="appt_note" placeholder="e.g. Meet with Janet re: lease renewal"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="closeModal('apptModal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="saveAppointment()">Save Appointment</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="pinModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title" id="pinModalTitle">Switch to Profile</div>
-    <div class="modal-body">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">Enter the 4-digit PIN for this profile to switch to it.</div>
-      <div class="field"><label>4-Digit PIN</label>
-        <input type="password" id="pinInput" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px">
-      </div>
-      <div id="pinError" style="color:var(--hot);font-size:12px;font-weight:600;display:none;margin-bottom:8px">Incorrect PIN. Try again.</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="closeModal('pinModal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="confirmPinSwitch()">Switch Profile</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="setPinModal">
-  <div class="modal">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Set Profile PIN</div>
-    <div class="modal-body">
-      <div style="font-size:13px;color:var(--txt2);margin-bottom:14px">Set a 4-digit PIN so others can switch to your profile without your login password. Leave blank to allow free switching.</div>
-      <div class="field"><label>New PIN (4 digits, optional)</label>
-        <input type="password" id="newPinInput" maxlength="4" placeholder="••••" inputmode="numeric" pattern="[0-9]*" style="font-size:24px;text-align:center;letter-spacing:8px">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-out" style="flex:1" onclick="closeModal('setPinModal')">Cancel</button>
-      <button class="btn btn-gold" style="flex:2" onclick="savePin()">Save PIN</button>
-    </div>
-  </div>
-</div>
-
-<div class="overlay" id="dropModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title">Drop Pin Here</div><div class="modal-body"><div class="field"><label>Business Name (optional)</label><input type="text" id="dp_biz" placeholder="Fill in later if unknown"></div><div class="field"><label>Coordinates</label><input type="text" id="dp_addr" readonly style="color:var(--txt2)"></div><div class="field"><label>Pin Color</label><div class="pin-color-grid" id="pinColorGrid"></div></div><div class="field"><label>Quick Note</label><input type="text" id="dp_note" placeholder="e.g. Large office, lots of printers"></div></div><div class="modal-footer"><button class="btn btn-out" style="flex:1" onclick="cancelDrop()">Cancel</button><button class="btn btn-gold" style="flex:2" onclick="confirmDrop()">Save &amp; Add Details</button></div></div></div>
-
-<div class="overlay" id="leadModal"><div class="modal"><div class="modal-handle"></div><div class="modal-title" id="modalTitle">New Prospect</div><div class="modal-body">
-<div id="editFormInfo" style="display:none"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg> Business Info</div>
-<div class="field2">
-  <div><label>Business Name</label>
-    <div class="addr-wrap">
-      <input type="text" id="f_biz" placeholder="Smith Dental" autocomplete="off" oninput="bizNameChanged()" onblur="setTimeout(closeBizSuggestions,250)">
-      <div class="addr-suggestions" id="bizSuggestions" style="display:none"></div>
-    </div>
-  </div>
-  <div><label>City</label>
-    <input type="text" id="f_city" placeholder="Redding" autocomplete="off">
-  </div>
-</div>
-<div class="field"><label>Address</label>
-  <div class="addr-wrap">
-    <input type="text" id="f_addr" placeholder="123 Main St, Redding, CA" autocomplete="off" oninput="addrAutocomplete(this.value)" onblur="setTimeout(closeAddrSuggestions,200)">
-    <div class="addr-suggestions" id="addrSuggestions" style="display:none"></div>
-  </div>
-</div>
-<div class="field"><label>Website</label>
-  <input type="text" id="f_website" placeholder="www.example.com" autocomplete="off" inputmode="url">
-</div>
-<div class="field2">
-  <div><label>Business Type</label><select id="f_biztype" style="background:var(--surf);color:var(--txt)"><option value="">— Type —</option><option>Law Office</option><option>Medical / Dental</option><option>Accounting / Finance</option><option>Real Estate</option><option>Insurance</option><option>Manufacturing</option><option>Retail</option><option>Restaurant / Food</option><option>Education</option><option>Government</option><option>Non-Profit</option><option>Construction</option><option>Auto / Dealership</option><option>Other</option></select></div>
-  <div><label>Est. # Employees</label><input type="number" id="f_employees" placeholder="0" min="0"></div>
-</div>
-<div id="hubspotIdRow" style="display:none">
-  <div class="field"><label style="color:var(--txth)">HubSpot Company ID</label>
-    <input type="text" id="f_hubspotId" placeholder="e.g. 12345678" style="color:var(--txt2);font-size:13px">
-  </div>
-</div>
-<div style="margin-bottom:11px">
-  <button type="button" onclick="toggleHubspotIdField()" style="background:none;border:none;color:var(--txth);font-size:11px;cursor:pointer;padding:0;font-family:var(--ff);text-decoration:underline">
-    + Link to existing HubSpot company
-  </button>
-</div>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg> Lead Quality</div>
-<label>Lead Temperature <span style="font-size:10px;color:var(--txt2);font-weight:400;text-transform:none;letter-spacing:0">— or use a custom label from Settings</span></label>
-<div class="tsel"><div class="topt" data-v="hot" onclick="selTemp('hot')">🔥 Hot</div><div class="topt" data-v="warm" onclick="selTemp('warm')">🌤 Warm</div><div class="topt" data-v="cool" onclick="selTemp('cool')">❄️ Cool</div><div class="topt" data-v="cold" onclick="selTemp('cold')">🧊 Cold</div></div>
-<div id="customLabelSel" style="display:none;margin-bottom:12px">
-  <label>Or use custom label</label>
-  <select id="f_customLabel" style="background:var(--surf);color:var(--txt)" onchange="applyCustomLabelColor()">
-    <option value="">— None (use temperature above) —</option>
-  </select>
-</div>
-<div class="field2">
-  <div><label>Status</label><select id="f_status" style="background:var(--surf);color:var(--txt)"><option value="">— Select —</option><option>Prospecting</option><option>Follow-up Needed</option><option>Demo Scheduled</option><option>Proposal Sent</option><option>Negotiating</option><option>Closed Won</option><option>Closed Lost</option></select></div>
-  <div><label>Follow-Up Date</label><input type="date" id="f_fudate"></div>
-</div>
-<div class="field" style="display:flex;align-items:center;gap:10px"><input type="checkbox" id="f_starred" style="width:auto;padding:0;flex-shrink:0"><label for="f_starred" style="text-transform:none;letter-spacing:0;font-size:13px;font-weight:600;margin:0">⭐ Star this lead</label></div>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> Contacts Spoken To</div>
-<div id="cCont"></div><button class="btn btn-out btn-sm" onclick="addContact()">+ Add Contact</button>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> Need to Speak To</div>
-<div id="nCont"></div><button class="btn btn-out btn-sm" onclick="addNeedContact()">+ Add Person</button>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 11.5 19.79 19.79 0 0 1 1.61 2.84 2 2 0 0 1 3.6 1h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.56a16 16 0 0 0 6 6l.94-.94a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Phone &amp; Email</div>
-<div id="peCont"></div><button class="btn btn-out btn-sm" onclick="addPE()">+ Add Phone / Email</button>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Printers &amp; Equipment</div>
-<div class="field2"><div><label>Est. # Printers</label><input type="number" id="f_pcount" placeholder="0" min="0"></div><div><label>Est. Pages/Month</label><input type="number" id="f_tpages" placeholder="0" min="0"></div></div>
-<div id="prCont"></div><button class="btn btn-out btn-sm" onclick="addPrinter()">+ Add Specific Printer</button>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Current Lease</div>
-<div class="field2"><div><label>Has Lease?</label><select id="f_lease" style="background:var(--surf);color:var(--txt)"><option value="">Unknown</option><option value="yes">Yes</option><option value="no">No</option></select></div><div><label>Lease End Date</label><input type="date" id="f_leaseend"></div></div>
-<div class="field"><label>Leased From</label><input type="text" id="f_leaseco" placeholder="Lease company name"></div>
-<div class="field"><label>Monthly Lease Amount ($)</label><input type="number" id="f_leaseamt" placeholder="0" min="0"></div>
-<div class="divider"></div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-  Voice Note + AI Auto-Fill
-</div>
-<div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--r);padding:14px;margin-bottom:12px">
-  <div style="font-size:12px;color:var(--txt2);margin-bottom:10px;line-height:1.6">
-    <strong>How to use:</strong><br>
-    1️⃣ Enter the business name + city above<br>
-    2️⃣ Tap Record and speak naturally about the visit<br>
-    3️⃣ Tap <strong>Search &amp; Fill with Claude</strong> — one request fills everything
-  </div>
-  <button class="voice-btn" id="voiceBtn" onclick="toggleRecording()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-    Tap to Record
-  </button>
-  <div class="voice-status" id="voiceStatus"></div>
-  <div id="voiceReadyBadge" style="display:none;background:#eafaf1;border:1px solid var(--green);border-radius:var(--rsm);padding:8px 12px;font-size:12px;color:var(--green);font-weight:600;margin-bottom:10px">
-    ✅ Voice note recorded — ready to send to Claude
-  </div>
-  <button id="claudeSubmitBtn" onclick="runCombinedClaude()" style="width:100%;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;border:none;border-radius:var(--rsm);padding:13px;font-size:14px;font-weight:700;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-    Search &amp; Fill with Claude <span style="font-size:11px;opacity:.7;margin-left:4px">(1 credit)</span>
-  </button>
-  <div class="ai-processing" id="aiProcessing">
-    <div class="spinner" style="width:18px;height:18px;border-width:2px"></div>
-    <span id="aiProcessingMsg">Claude is searching and extracting info…</span>
-  </div>
-  <div class="voice-result" id="voiceResult"></div>
-</div>
-<div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
+      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
   Visit Notes
 </div>
@@ -1168,14 +986,39 @@ function renderDetail(id){
   if(l.hasLease)h+='<div class="card"><div class="card-hd">Lease Info</div><div class="card-bd"><div class="irow"><div class="ilbl">Has Lease</div><div class="ival">'+(l.hasLease==='yes'?'✅ Yes':'❌ No')+'</div></div>'+(l.leaseco?'<div class="irow"><div class="ilbl">Leased From</div><div class="ival">'+l.leaseco+'</div></div>':'')+(l.leaseend?'<div class="irow"><div class="ilbl">Ends</div><div class="ival">'+fds(l.leaseend)+'</div></div>':'')+(l.leaseamt?'<div class="irow"><div class="ilbl">Monthly</div><div class="ival">$'+parseInt(l.leaseamt).toLocaleString()+'/mo</div></div>':'')+'</div></div>';
   h+='<div class="card"><div class="card-hd">Visit History ('+(l.visits||[]).length+')</div><div class="card-bd">';
   if(l.visits&&l.visits.length){
-    var sortedVisits=[...l.visits].sort(function(a,b){return new Date(b.date)-new Date(a.date);});
-    sortedVisits.forEach(function(v){
-      h+='<div class="ve"><div class="vd">'+fdt(v.date)+'</div><div class="vn">'+(v.notes||'<span style="color:var(--txth)">No notes recorded</span>')+'</div></div>';
+    var sortedVisits=[...l.visits].map(function(v,i){return{v:v,i:i};}).sort(function(a,b){return new Date(b.v.date)-new Date(a.v.date);});
+    sortedVisits.forEach(function(item){
+      var v=item.v; var vi=item.i;
+      var dt=new Date(v.date);
+      var dateVal=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
+      var timeVal=String(dt.getHours()).padStart(2,'0')+':'+String(dt.getMinutes()).padStart(2,'0');
+      var edId='vedit_'+id+'_'+vi;
+      h+='<div class="ve" id="'+edId+'">';
+      h+='<div class="vd">'+fdt(v.date)+'</div>';
+      h+='<div class="vn">'+(v.notes?escHtml(v.notes):'<span style="color:var(--txth)">No notes recorded</span>')+'</div>';
+      h+='<div class="ve-actions">';
+      h+='<button class="ve-action-btn" data-lid="'+id+'" data-vi="'+vi+'" data-date="'+dateVal+'" data-time="'+timeVal+'" data-notes="'+encodeURIComponent(v.notes||'')+'" onclick="openVisitEditor(this)">✏️ Edit</button>';
+      h+='<button class="ve-action-btn" style="color:#c0392b;border-color:#c0392b" data-lid="'+id+'" data-vi="'+vi+'" onclick="deleteVisit(this)">🗑 Delete</button>';
+      h+='</div></div>';
     });
   }
   else h+='<div style="font-size:13px;color:var(--txt2)">No visits yet</div>';
-  h+='<div class="divider"></div>'
-    +'<div style="font-weight:700;font-size:13px;margin-bottom:9px">Log Visit Note</div>'
+  h+='<div class="divider"></div>';
+  // Voice notes section
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:9px">🎙 Voice Notes</div>';
+  h+='<div id="voiceClipList_'+id+'"></div>';
+  h+='<button class="rec-btn" id="recBtn_'+id+'" data-lid="'+id+'" onclick="startVoiceRec(this.dataset.lid)">';
+  h+='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+  h+='<span id="recLabel_'+id+'">+ Record Voice Note</span></button>';
+  h+='<div class="divider"></div>';
+  // Photos section
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:9px">📷 Photos</div>';
+  h+='<div class="photo-grid" id="photoGrid_'+id+'"></div>';
+  h+='<label style="display:flex;align-items:center;gap:7px;background:var(--surf);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;color:var(--txt);margin-top:8px">';
+  h+='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
+  h+='+ Add Photo<input type="file" accept="image/*" capture="environment" style="display:none" data-lid="'+id+'" onchange="addPhoto(this)"></label>';
+  h+='<div class="divider"></div>';
+  h+='<div style="font-weight:700;font-size:13px;margin-bottom:9px">Log Visit Note</div>'
     +'<div style="background:var(--bg);border:1px solid var(--bord);border-radius:var(--rsm);padding:10px;margin-bottom:9px">'
     +'<div style="font-size:11px;color:var(--txt2);margin-bottom:8px">Defaults to right now — change date/time to log a past visit.</div>'
     +'<div style="display:flex;gap:8px;margin-bottom:8px">'
@@ -1192,7 +1035,11 @@ function renderDetail(id){
     +'</div></div></div>';
   document.getElementById('detailContent').innerHTML=h;
   // Pre-fill visit date/time to now
-  setTimeout(setVisitDateToNow, 50);
+  setTimeout(function(){
+    setVisitDateToNow();
+    loadVoiceClips(id);
+    loadPhotos(id);
+  }, 50);
 }
 
 function addVisit(id){
@@ -2142,251 +1989,6 @@ function searchBusiness(){
 }
 
 
-// ── OPENSTREETMAP NOMINATIM SEARCH (free fallback) ────────────────────
-function searchBusinessOSM(name){
-  var box=document.getElementById('bizSuggestions');
-  box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">Searching…</div>';
-  box.style.display='block';
-  // Search with NorCal bias — try named business first
-  var url='https://nominatim.openstreetmap.org/search?format=json&q='+
-    encodeURIComponent(name)+
-    '&addressdetails=1&limit=8&bounded=0&viewbox=-124.5,42.1,-120.0,39.5'+
-    '&countrycodes=us&featuretype=amenity,shop,office,commercial';
-  fetch(url,{headers:{'Accept-Language':'en-US,en'}})
-    .then(function(r){return r.json();})
-    .then(function(results){
-      if(!results||!results.length){
-        // Broaden search to all of California
-        return fetch('https://nominatim.openstreetmap.org/search?format=json&q='+
-          encodeURIComponent(name+', California')+'&addressdetails=1&limit=6&countrycodes=us',
-          {headers:{'Accept-Language':'en-US,en'}})
-          .then(function(r){return r.json();});
-      }
-      return results;
-    })
-    .then(function(results){
-      if(!results||!results.length){
-        box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">No results found. Try a more specific name or enter the address manually.</div>';
-        return;
-      }
-      // Filter to most relevant results
-      var filtered=results.filter(function(r){
-        var t=r.type||'';var c=r.class||'';
-        // Prioritize commercial/business results
-        return c==='amenity'||c==='shop'||c==='office'||c==='commercial'||
-               c==='building'||c==='landuse'||t==='yes'||results.length<=3;
-      });
-      if(!filtered.length)filtered=results;
-      showBizResults(filtered.slice(0,6).map(function(r){
-        var addr=r.display_name||'';
-        // Clean up the address - remove country
-        addr=addr.replace(', United States','').replace(', USA','');
-        // Build a cleaner address from components
-        var a=r.address||{};
-        var street=(a.house_number?a.house_number+' ':'')+
-          (a.road||a.pedestrian||a.footway||'');
-        var city=a.city||a.town||a.village||a.hamlet||a.county||'';
-        var state=a.state||'';
-        var zip=a.postcode||'';
-        var cleanAddr=street?(street+(city?', '+city:'')+(state?', '+state:'')+(zip?' '+zip:'')):'';
-        // Determine business type from OSM tags
-        var btype='';
-        if(r.class==='amenity')btype=r.type?r.type.replace(/_/g,' '):'';
-        else if(r.class==='shop')btype='Retail';
-        else if(r.class==='office')btype='Office';
-        return {
-          name:r.name||r.display_name.split(',')[0],
-          address:cleanAddr||addr.split(',').slice(0,3).join(','),
-          phone:'',
-          bizType:btype,
-          lat:parseFloat(r.lat),
-          lng:parseFloat(r.lon)
-        };
-      }));
-    })
-    .catch(function(err){
-      box.innerHTML='<div class="addr-suggestion" style="color:var(--hot)">Search failed. Check your internet connection.</div>';
-    });
-}
-
-function showBizResults(results){
-  var box=document.getElementById('bizSuggestions');
-  if(!results||!results.length){
-    box.innerHTML='<div class="addr-suggestion" style="color:var(--txt2)">No results. Try a different name or enter manually.</div>';
-    return;
-  }
-  box.innerHTML='';
-  results.forEach(function(r){
-    var div=document.createElement('div');
-    div.className='addr-suggestion';
-    div.innerHTML='<strong>'+escHtml(r.name)+'</strong>'+(r.address?'<br><span style="font-size:11px;color:var(--txt2)">'+escHtml(r.address)+'</span>':'')+(r.bizType?'<span style="font-size:10px;color:var(--txth);margin-left:6px">'+escHtml(r.bizType)+'</span>':'');
-    div.addEventListener('mousedown',function(){selectBizResult(r);});
-    div.addEventListener('touchstart',function(e){e.preventDefault();selectBizResult(r);});
-    box.appendChild(div);
-  });
-  box.style.display='block';
-}
-
-function escHtml(str){
-  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function selectBizResult(r){
-  closeBizSuggestions();
-  // Fill in form fields
-  if(r.name)document.getElementById('f_biz').value=r.name;
-  if(r.address)document.getElementById('f_addr').value=r.address;
-  if(r.bizType){
-    // Try to match to our dropdown options
-    var bizTypeEl=document.getElementById('f_biztype');
-    var opts=[].slice.call(bizTypeEl.options);
-    var match=opts.find(function(o){return o.value.toLowerCase().includes(r.bizType.toLowerCase())||r.bizType.toLowerCase().includes(o.value.toLowerCase().replace(' / ','').replace('/',''));});
-    if(match)bizTypeEl.value=match.value;
-  }
-  if(r.phone){
-    // Add phone if field is empty
-    var peContainer=document.getElementById('peCont');
-    if(peContainer&&!peContainer.querySelector('[data-f="value"]')){
-      addPE({type:'Phone',label:'Office',value:r.phone});
-    }
-  }
-  // Set lat/lng for auto-pin
-  if(r.lat&&r.lng){
-    pendingLatLng={lat:r.lat,lng:r.lng};
-  }
-  closeBizSuggestions();
-  // Show confirmation
-  var status=document.createElement('div');
-  status.style.cssText='font-size:12px;color:var(--green);margin-top:5px;font-weight:600';
-  status.textContent='✅ Business info filled in'+(r.lat?' — pin location set':'');
-  var wrap=document.getElementById('f_biz').closest('.addr-wrap');
-  var existing=wrap.querySelector('.fill-confirm');
-  if(existing)existing.remove();
-  status.className='fill-confirm';
-  wrap.appendChild(status);
-  setTimeout(function(){if(status.parentNode)status.parentNode.removeChild(status);},3000);
-}
-
-function closeBizSuggestions(){
-  var box=document.getElementById('bizSuggestions');
-  if(box){box.style.display='none';box.innerHTML='';}
-}
-
-// ── COMBINED CLAUDE: Business Search + Voice Note in ONE request ──────
-var recordedTranscript = '';  // stores voice transcript for combined call
-
-function runCombinedClaude(){
-  var name=document.getElementById('f_biz').value.trim();
-  var city=document.getElementById('f_city').value.trim();
-  var manualNotes=document.getElementById('f_notes').value.trim();
-
-  if(!name&&!recordedTranscript&&!manualNotes){
-    alert('Enter a business name or record a voice note first.');return;
-  }
-  var akey=localStorage.getItem('cbs_akey')||'';
-  if(!akey){
-    alert('Add your Anthropic API key in Settings first.');return;
-  }
-  if(!checkUsageLimit())return;
-
-  var processingEl=document.getElementById('aiProcessing');
-  var resultEl=document.getElementById('voiceResult');
-  var msgEl=document.getElementById('aiProcessingMsg');
-  processingEl.classList.add('show');
-  resultEl.classList.remove('show');
-  closeBizSuggestions();
-
-  // Build a rich prompt combining both tasks
-  var bizPart=name?('"'+name.replace(/"/g,'\"')+'"'+(city?' in '+city.replace(/"/g,'\"')+', California':' in Northern California, likely Redding/Chico/Red Bluff area')):'(business name not provided)';
-  var voicePart=recordedTranscript?'The sales rep said after the visit: "'+recordedTranscript.replace(/"/g,'\"')+'"':'';
-  var notesPart=manualNotes?'Additional written notes: "'+manualNotes.replace(/"/g,'\"')+'"':'';
-
-  var hasBizSearch=!!name;
-  var hasVoice=!!(recordedTranscript||manualNotes);
-
-  if(msgEl){
-    if(hasBizSearch&&hasVoice)msgEl.textContent='Claude is searching for the business and extracting your notes…';
-    else if(hasBizSearch)msgEl.textContent='Claude is searching for this business…';
-    else msgEl.textContent='Claude is extracting info from your notes…';
-  }
-
-  // If we have a pending audio blob and no transcript, send audio to Claude
-  if(window._pendingAudioBlob&&!recordedTranscript){
-    // Convert blob to base64 and include in messages
-    var reader=new FileReader();
-    reader.onload=function(e){
-      var base64=e.target.result.split(',')[1];
-      runCombinedClaudeWithAudio(name,city,manualNotes,base64,window._pendingAudioMime||'audio/mp4',akey,processingEl,resultEl,msgEl,hasBizSearch);
-    };
-    reader.readAsDataURL(window._pendingAudioBlob);
-    return;
-  }
-
-  var prompt='You are a sales assistant for an MFP (copier/printer) sales rep in Northern California. '+
-    (hasBizSearch?'Search the web for the business '+bizPart+' and find its address, phone, website, and business type. ':'')+
-    (hasVoice?voicePart+' '+notesPart+' Extract all sales-relevant information from what the rep said. ':'')+
-    'Return ONLY a single JSON object with ALL of these fields (use empty string if unknown): '+
-    '{"bizName":"exact business name","address":"full street address city state zip","phone":"(xxx) xxx-xxxx","website":"","bizType":"one of: Law Office|Medical / Dental|Accounting / Finance|Real Estate|Insurance|Manufacturing|Retail|Restaurant / Food|Education|Government|Non-Profit|Construction|Auto / Dealership|Other","employees":"number","temp":"hot|warm|cool|cold (based on interest level described)","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"number","totalPages":"monthly pages","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"monthly dollar amount number","notes":"clean 1-2 sentence visit summary"}. '+
-    'Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
-
-  claudeApiFetch({
-      model:'claude-sonnet-4-20250514',
-      max_tokens:800,
-      tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],
-      messages:[{role:'user',content:prompt}]
-    },akey)
-  .then(function(data){
-    processingEl.classList.remove('show');
-    incrementUsage();
-    var text='';
-    if(data.content&&data.content.length){
-      data.content.forEach(function(block){if(block.type==='text')text+=block.text;});
-    }
-    if(!text){
-      resultEl.innerHTML='<span style="color:var(--hot)">Claude could not process this request. Try again.</span>';
-      resultEl.classList.add('show');return;
-    }
-    try{
-      var info=JSON.parse(text.replace(/```json|```/g,'').trim());
-      applyAllClaudeResults(info);
-    } catch(e){
-      // If JSON fails just put transcript in notes
-      if(recordedTranscript)document.getElementById('f_notes').value=recordedTranscript;
-      resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse response. Transcript added to notes.</span>';
-      resultEl.classList.add('show');
-    }
-  })
-  .catch(function(err){processingEl.classList.remove('show');
-    resultEl.innerHTML='<span style="color:var(--hot)">Request failed. Check your internet and API key in Settings.</span>';
-    resultEl.classList.add('show');
-  });}
-
-function runCombinedClaudeWithAudio(name,city,manualNotes,base64Audio,mimeType,akey,processingEl,resultEl,msgEl,hasBizSearch){
-  var bizPart=name?('"'+name.replace(/"/g,'\"')+'"'+(city?' in '+city.replace(/"/g,'\"')+', California':' in Northern California')):'(business name not provided)';
-  var notesPart=manualNotes?'Additional written notes: "'+manualNotes.replace(/"/g,'\"')+'"':'';
-  if(msgEl)msgEl.textContent='Claude is processing your voice note and searching for the business…';
-  var prompt='You are a sales assistant for an MFP (copier/printer) sales rep in Northern California. '+
-    (hasBizSearch?'Search the web for the business '+bizPart+' and find its address, phone, website, and business type. ':'')+
-    'The attached audio is a voice note the rep recorded after visiting the prospect. Transcribe it and extract all sales info. '+
-    notesPart+' '+
-    'Return ONLY a single JSON object: {"bizName":"","address":"","phone":"","website":"","bizType":"Law Office|Medical / Dental|Accounting / Finance|Real Estate|Insurance|Manufacturing|Retail|Restaurant / Food|Education|Government|Non-Profit|Construction|Auto / Dealership|Other","employees":"","temp":"hot|warm|cool|cold","status":"Prospecting|Follow-up Needed|Demo Scheduled|Proposal Sent|Negotiating|Closed Won|Closed Lost","followupDate":"YYYY-MM-DD or empty","contacts":[{"name":"","title":""}],"needContacts":[{"name":"","title":""}],"phoneEmails":[{"type":"Phone|Cell|Email","label":"","value":""}],"printerCount":"","totalPages":"","printers":[{"brand":"","model":"","pages":""}],"hasLease":"yes|no|","leaseend":"YYYY-MM-DD or empty","leaseco":"","leaseamt":"","notes":"clean visit summary"}. Today is '+new Date().toISOString().split('T')[0]+'. Return ONLY valid JSON.';
-  var messages=[{role:'user',content:[
-    {type:'text',text:prompt},
-    {type:'document',source:{type:'base64',media_type:mimeType,data:base64Audio}}
-  ]}];
-  claudeApiFetch({model:'claude-sonnet-4-20250514',max_tokens:800,tools:hasBizSearch?[{type:'web_search_20250305',name:'web_search'}]:[],messages:messages},akey)
-  .then(function(data){
-    processingEl.classList.remove('show');
-    incrementUsage();
-    var text='';
-    if(data.content&&data.content.length)data.content.forEach(function(b){if(b.type==='text')text+=b.text;});
-    if(!text){resultEl.innerHTML='<span style="color:var(--hot)">Could not process. Try again.</span>';resultEl.classList.add('show');return;}
-    try{applyAllClaudeResults(JSON.parse(text.replace(/```json|```/g,'').trim()));}
-    catch(e){resultEl.innerHTML='<span style="color:var(--txt2)">Could not parse. Try recording again.</span>';resultEl.classList.add('show');}
-  })
-  .catch(function(err){if(recognition)try{recognition.stop();}catch(e){}
-    alert('Could not access microphone. Please allow microphone access and try again. Error: '+err.message);
-  });}
 
 function stopRecording(){
   if(mediaRecorder&&mediaRecorder.state!=='inactive'){mediaRecorder.stop();}
@@ -3677,6 +3279,334 @@ function closeAddrSuggestions() {
   var box = document.getElementById('addrSuggestions');
   if (box) box.style.display = 'none';
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// INDEXEDDB — local storage for voice clips and photos
+// ══════════════════════════════════════════════════════════════════════
+var _idb = null;
+function openIDB() {
+  if (_idb) return Promise.resolve(_idb);
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open('CoastalProspector', 1);
+    req.onupgradeneeded = function(e) {
+      var db = e.target.result;
+      if (!db.objectStoreNames.contains('voice')) db.createObjectStore('voice', {keyPath: 'id'});
+      if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos', {keyPath: 'id'});
+    };
+    req.onsuccess = function(e) { _idb = e.target.result; resolve(_idb); };
+    req.onerror = function(e) { reject(e); };
+  });
+}
+function idbGetAll(store, leadId) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve) {
+      var tx = db.transaction(store, 'readonly');
+      var results = [];
+      tx.objectStore(store).openCursor().onsuccess = function(e) {
+        var cur = e.target.result;
+        if (cur) {
+          if (cur.value.leadId === leadId) results.push(cur.value);
+          cur.continue();
+        } else { resolve(results); }
+      };
+    });
+  });
+}
+function idbPut(store, item) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).put(item).onsuccess = function() { resolve(); };
+      tx.onerror = reject;
+    });
+  });
+}
+function idbDelete(store, id) {
+  return openIDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(store, 'readwrite');
+      tx.objectStore(store).delete(id).onsuccess = function() { resolve(); };
+      tx.onerror = reject;
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// VISIT EDITOR — edit date, time, notes of past visits
+// ══════════════════════════════════════════════════════════════════════
+function openVisitEditor(btn) {
+  var lid = btn.dataset.lid;
+  var vi  = parseInt(btn.dataset.vi);
+  var date = btn.dataset.date;
+  var time = btn.dataset.time;
+  var notes = decodeURIComponent(btn.dataset.notes || '');
+  var edId = 'vedit_' + lid + '_' + vi;
+  var container = document.getElementById(edId);
+  if (!container) return;
+  // Close any other open editors
+  document.querySelectorAll('.ve-editor').forEach(function(el) { el.remove(); });
+  var ed = document.createElement('div');
+  ed.className = 've-editor';
+  ed.innerHTML =
+    '<label>Date</label><input type="date" class="ve-date" value="' + date + '">' +
+    '<label>Time</label><input type="time" class="ve-time" value="' + time + '">' +
+    '<label>Notes</label><textarea class="ve-notes" rows="3" style="resize:vertical">' + escHtml(notes) + '</textarea>' +
+    '<div style="display:flex;gap:8px">' +
+    '<button class="btn btn-primary btn-sm" style="flex:1" data-lid="' + lid + '" data-vi="' + vi + '" onclick="saveVisitEdit(this.dataset.lid,parseInt(this.dataset.vi),this.closest(\'.ve-editor\'))">Save</button>' +
+    '<button class="btn btn-out btn-sm" style="flex:1" onclick="document.querySelectorAll(\'.ve-editor\').forEach(function(x){x.remove();})">Cancel</button>' +
+    '</div>';
+  container.appendChild(ed);
+}
+
+function saveVisitEdit(lid, vi, edEl) {
+  var dateVal = (edEl.querySelector('.ve-date')||{}).value || '';
+  var timeVal = (edEl.querySelector('.ve-time')||{}).value || '12:00';
+  var notesVal = ((edEl.querySelector('.ve-notes')||{}).value || '').trim();
+  if (!dateVal) { alert('Please set a date.'); return; }
+  var l = (window._leads || []).find(function(x) { return x.id === lid; });
+  if (!l) return;
+  var visits = [...(l.visits || [])];
+  // Build local ISO timestamp
+  var dtLocal = new Date(dateVal + 'T' + timeVal + ':00');
+  var off = -dtLocal.getTimezoneOffset();
+  var sign = off >= 0 ? '+' : '-';
+  var ah = String(Math.floor(Math.abs(off) / 60)).padStart(2, '0');
+  var am = String(Math.abs(off) % 60).padStart(2, '0');
+  var newDate = dtLocal.getFullYear() + '-' + String(dtLocal.getMonth()+1).padStart(2,'0') + '-' +
+    String(dtLocal.getDate()).padStart(2,'0') + 'T' + String(dtLocal.getHours()).padStart(2,'0') +
+    ':' + String(dtLocal.getMinutes()).padStart(2,'0') + ':00' + sign + ah + ':' + am;
+  visits[vi] = { date: newDate, notes: notesVal };
+  var lastVisitAt = visits.reduce(function(mx, v) { return v.date > mx ? v.date : mx; }, visits[0].date);
+  window.fbUpdateLead(lid, { visits: visits, lastVisitAt: lastVisitAt }).then(function() {
+    showToast('Visit updated');
+    showDetail(lid);
+  });
+}
+
+function deleteVisit(btn) {
+  var lid = btn.dataset.lid;
+  var vi  = parseInt(btn.dataset.vi);
+  var l   = (window._leads || []).find(function(x) { return x.id === lid; });
+  if (!l) return;
+  var dateStr = l.visits && l.visits[vi] ? fdt(l.visits[vi].date) : 'this visit';
+  if (!confirm('Delete visit from ' + dateStr + '? This cannot be undone.')) return;
+  var visits = [...(l.visits || [])];
+  visits.splice(vi, 1);
+  var lastVisitAt = visits.length ? visits.reduce(function(mx, v) { return v.date > mx ? v.date : mx; }, visits[0].date) : '';
+  window.fbUpdateLead(lid, { visits: visits, lastVisitAt: lastVisitAt }).then(function() {
+    showToast('Visit deleted');
+    showDetail(lid);
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// VOICE NOTES — record, playback, delete (stored in IndexedDB)
+// ══════════════════════════════════════════════════════════════════════
+var _mediaRecorder = null;
+var _recChunks = [];
+var _recLeadId = null;
+var _recTimerInt = null;
+var _recSeconds = 0;
+
+function startVoiceRec(lid) {
+  if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+    stopVoiceRec(lid);
+    return;
+  }
+  _recLeadId = lid;
+  _recChunks = [];
+  _recSeconds = 0;
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream) {
+    var opts = {};
+    if (MediaRecorder.isTypeSupported('audio/mp4')) opts.mimeType = 'audio/mp4';
+    else if (MediaRecorder.isTypeSupported('audio/webm')) opts.mimeType = 'audio/webm';
+    _mediaRecorder = new MediaRecorder(stream, opts);
+    _mediaRecorder.ondataavailable = function(e) { if (e.data.size > 0) _recChunks.push(e.data); };
+    _mediaRecorder.onstop = function() {
+      stream.getTracks().forEach(function(t) { t.stop(); });
+      var blob = new Blob(_recChunks, { type: _mediaRecorder.mimeType });
+      saveVoiceClip(lid, blob, _mediaRecorder.mimeType);
+      clearInterval(_recTimerInt);
+      var btn = document.getElementById('recBtn_' + lid);
+      if (btn) {
+        btn.classList.remove('recording');
+        btn.querySelector('span').textContent = '+ Record Voice Note';
+      }
+    };
+    _mediaRecorder.start();
+    var btn = document.getElementById('recBtn_' + lid);
+    if (btn) {
+      btn.classList.add('recording');
+      btn.querySelector('span').textContent = '⏹ Stop (0:00)';
+    }
+    _recTimerInt = setInterval(function() {
+      _recSeconds++;
+      var m = Math.floor(_recSeconds / 60);
+      var s = String(_recSeconds % 60).padStart(2, '0');
+      var b = document.getElementById('recBtn_' + lid);
+      if (b) b.querySelector('span').textContent = '⏹ Stop (' + m + ':' + s + ')';
+    }, 1000);
+  }).catch(function(err) {
+    alert('Microphone access denied. Please allow microphone in Safari Settings.');
+  });
+}
+
+function stopVoiceRec(lid) {
+  if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+    _mediaRecorder.stop();
+  }
+}
+
+function saveVoiceClip(lid, blob, mimeType) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var clip = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+      leadId: lid,
+      data: e.target.result, // base64 data URL
+      mimeType: mimeType,
+      createdAt: now(),
+    };
+    idbPut('voice', clip).then(function() {
+      loadVoiceClips(lid);
+      showToast('Voice note saved');
+    });
+  };
+  reader.readAsDataURL(blob);
+}
+
+function loadVoiceClips(lid) {
+  var container = document.getElementById('voiceClipList_' + lid);
+  if (!container) return;
+  idbGetAll('voice', lid).then(function(clips) {
+    clips.sort(function(a, b) { return a.createdAt > b.createdAt ? 1 : -1; });
+    if (!clips.length) {
+      container.innerHTML = '<div style="font-size:12px;color:var(--txth);margin-bottom:8px">No voice notes recorded.</div>';
+      return;
+    }
+    container.innerHTML = '';
+    clips.forEach(function(clip) {
+      var d = new Date(clip.createdAt);
+      var label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+        d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      var div = document.createElement('div');
+      div.className = 'voice-clip';
+      var audio = document.createElement('audio');
+      audio.controls = true;
+      audio.src = clip.data;
+      var lbl = document.createElement('span');
+      lbl.className = 'voice-clip-lbl';
+      lbl.textContent = label;
+      var del = document.createElement('button');
+      del.className = 'voice-clip-del';
+      del.textContent = '×';
+      del.title = 'Delete recording';
+      del.addEventListener('click', function() {
+        if (confirm('Delete this voice note? It cannot be recovered.')) {
+          idbDelete('voice', clip.id).then(function() { loadVoiceClips(lid); showToast('Voice note deleted'); });
+        }
+      });
+      div.appendChild(lbl);
+      div.appendChild(audio);
+      div.appendChild(del);
+      container.appendChild(div);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PHOTOS — add from camera/roll, view, delete (stored in IndexedDB)
+// ══════════════════════════════════════════════════════════════════════
+function addPhoto(input) {
+  var lid = input.dataset.lid;
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    // Compress to max 1200px wide
+    var img = new Image();
+    img.onload = function() {
+      var maxW = 1200;
+      var ratio = Math.min(1, maxW / img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * ratio);
+      canvas.height = Math.round(img.height * ratio);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      var dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      var photo = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+        leadId: lid,
+        data: dataUrl,
+        createdAt: now(),
+      };
+      idbPut('photos', photo).then(function() {
+        loadPhotos(lid);
+        showToast('Photo saved');
+      });
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  input.value = ''; // reset so same file can be added again
+}
+
+function loadPhotos(lid) {
+  var grid = document.getElementById('photoGrid_' + lid);
+  if (!grid) return;
+  idbGetAll('photos', lid).then(function(photos) {
+    photos.sort(function(a, b) { return a.createdAt > b.createdAt ? 1 : -1; });
+    if (!photos.length) {
+      grid.innerHTML = '<div style="font-size:12px;color:var(--txth)">No photos yet.</div>';
+      return;
+    }
+    grid.innerHTML = '';
+    photos.forEach(function(photo) {
+      var thumb = document.createElement('div');
+      thumb.className = 'photo-thumb';
+      var img = document.createElement('img');
+      img.src = photo.data;
+      img.alt = 'Photo';
+      img.addEventListener('click', function() { openLightbox(photo.data); });
+      var del = document.createElement('button');
+      del.className = 'photo-del';
+      del.textContent = '×';
+      del.title = 'Delete photo';
+      del.addEventListener('click', function(e) {
+        e.stopPropagation();
+        if (confirm('Delete this photo? It cannot be recovered.')) {
+          idbDelete('photos', photo.id).then(function() { loadPhotos(lid); showToast('Photo deleted'); });
+        }
+      });
+      thumb.appendChild(img);
+      thumb.appendChild(del);
+      grid.appendChild(thumb);
+    });
+  });
+}
+
+function openLightbox(src) {
+  var lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = '<button class="lightbox-close" onclick="this.parentElement.remove()">×</button><img src="' + src + '">';
+  lb.addEventListener('click', function(e) { if (e.target === lb) lb.remove(); });
+  document.body.appendChild(lb);
+}
 </script>
 </body>
-</html>
+</html  // Build editor with DOM (avoids quote escaping issues)
+  var dateIn = document.createElement('input'); dateIn.type='date'; dateIn.className='ve-date'; dateIn.value=date;
+  var timeIn = document.createElement('input'); timeIn.type='time'; timeIn.className='ve-time'; timeIn.value=time;
+  var notesIn = document.createElement('textarea'); notesIn.className='ve-notes'; notesIn.rows=3; notesIn.style.resize='vertical'; notesIn.value=notes;
+  var btnRow = document.createElement('div'); btnRow.style.cssText='display:flex;gap:8px';
+  var saveB = document.createElement('button'); saveB.className='btn btn-primary btn-sm'; saveB.style.flex='1'; saveB.textContent='Save';
+  saveB.addEventListener('click', function(){ saveVisitEdit(lid, vi, ed); });
+  var cancelB = document.createElement('button'); cancelB.className='btn btn-out btn-sm'; cancelB.style.flex='1'; cancelB.textContent='Cancel';
+  cancelB.addEventListener('click', function(){ ed.remove(); });
+  btnRow.appendChild(saveB); btnRow.appendChild(cancelB);
+  var l1=document.createElement('label'); l1.textContent='Date';
+  var l2=document.createElement('label'); l2.textContent='Time';
+  var l3=document.createElement('label'); l3.textContent='Notes';
+  ed.appendChild(l1); ed.appendChild(dateIn);
+  ed.appendChild(l2); ed.appendChild(timeIn);
+  ed.appendChild(l3); ed.appendChild(notesIn);
+  ed.appendChild(btnRow);>
