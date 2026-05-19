@@ -238,7 +238,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
 </style>
 </head>
 <body>
-<body>
 
 <div id="loadingScreen">
   <div class="brand">Coastal <em>Prospector</em></div>
@@ -253,17 +252,21 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     <h2>Sign In</h2>
     <div class="login-err" id="loginErr"></div>
     <div class="field"><label>Email</label><input type="email" id="li_email" placeholder="you@example.com" autocomplete="email"></div>
-    <div class="field"><label>Password</label><input type="password" id="li_pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field"><label>Password</label><input type="password" id="li_pass" placeholder="········" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()"></div>
     <div class="remember-row"><input type="checkbox" id="li_remember" checked><label for="li_remember">Keep me signed in</label></div>
     <button class="btn btn-gold" id="loginBtn" onclick="doLogin()">Sign In →</button>
   </div>
 </div>
 
 <div id="app" style="display:none">
+
   <div class="hdr">
     <div class="hdr-row">
       <div>
-        <div class="brand">Coastal <em>Prospector</em> <span class="sync-dot" id="syncDot"></span><span id="offlineBadge" style="display:none;font-size:9px;font-weight:700;background:var(--hot);color:#fff;padding:2px 6px;border-radius:10px;margin-left:6px;vertical-align:middle;letter-spacing:.3px">OFFLINE</span></div>
+        <div class="brand">Coastal <em>Prospector</em>
+          <span class="sync-dot" id="syncDot"></span>
+          <span id="offlineBadge" style="display:none;font-size:9px;font-weight:700;background:var(--hot);color:#fff;padding:2px 6px;border-radius:10px;margin-left:6px;vertical-align:middle">OFFLINE</span>
+        </div>
         <div class="hdr-date" id="hdrDate"></div>
       </div>
       <div class="ubadge" onclick="openModal('acctModal')">
@@ -281,7 +284,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   </div>
 
   <div class="content">
-
     <div class="screen active" id="screen-dashboard">
       <div class="sgrid" id="dashStats"></div>
       <div id="dashStreak"></div>
@@ -290,7 +292,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <div id="dashToday"></div>
       <div style="height:70px"></div>
     </div>
-
     <div class="screen" id="screen-leads">
       <div class="sbar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -321,7 +322,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
       <div id="leadsList"></div>
       <div style="height:70px"></div>
     </div>
-
     <div class="screen" id="screen-map">
       <iframe id="mapFrame" src="about:blank"></iframe>
       <div id="mapUI">
@@ -354,7 +354,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
         </div>
       </div>
     </div>
-
     <div class="screen" id="screen-today">
   <div id="todayControls" style="background:var(--surf);border-bottom:1px solid var(--bord);padding:10px 14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">
     <div style="display:flex;align-items:center;gap:8px;flex:1">
@@ -384,9 +383,7 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
   </div>
   <div style="height:70px"></div>
 </div>
-
     <div class="screen" id="screen-analytics"><div id="analyticsContent"></div><div style="height:70px"></div></div>
-
     <div class="screen" id="screen-settings">
       <div class="sec" style="margin-top:4px">HubSpot Export</div>
       <div class="exp-card">
@@ -520,27 +517,16 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     Start Batch Lookup
   </button>
 </div>
-    </div><!-- end height spacer -->
-    </div><!-- end screen-settings -->
-  </div><!-- end content -->
-
-  <!-- ── DETAIL SCREEN ─────────────────────────────────────────────── -->
-  <div class="screen" id="screen-detail" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:var(--bg);overflow-y:auto;padding-bottom:80px">
-    <div class="hdr" style="position:sticky;top:0;z-index:10">
-      <div class="hdr-row">
-        <button onclick="history.back();showScreen('leads')" style="background:none;border:none;color:#fff;font-size:28px;cursor:pointer;padding:0 12px 0 0;line-height:1">‹</button>
-        <div style="flex:1"><div class="brand">Coastal <em>Prospector</em></div></div>
-      </div>
     </div>
-    <div style="padding:14px" id="detailContent"></div>
+    <div class="screen" id="screen-detail">
+      <div style="padding:14px" id="detailContent"></div>
+    </div>
   </div>
 
-  <!-- ── FAB ───────────────────────────────────────────────────────── -->
   <button class="fab" id="mainFab" onclick="openNewLead()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   </button>
 
-  <!-- ── NAVBAR ────────────────────────────────────────────────────── -->
   <nav class="navbar">
     <button class="nbtn active" id="nav-dashboard" onclick="showScreen('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
@@ -564,9 +550,8 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </button>
   </nav>
 
-</div><!-- end app -->
+</div>
 
-<!-- ── MODALS ─────────────────────────────────────────────────────── -->
 <div class="overlay" id="acctModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -578,7 +563,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </div>
   </div>
 </div>
-
 <div class="overlay" id="apptModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -599,7 +583,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </div>
   </div>
 </div>
-
 <div class="overlay" id="pinModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -612,7 +595,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </div>
   </div>
 </div>
-
 <div class="overlay" id="setPinModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -629,7 +611,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </div>
   </div>
 </div>
-
 <div class="overlay" id="dropModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -644,7 +625,6 @@ textarea{resize:vertical;min-height:72px;line-height:1.5}
     </div>
   </div>
 </div>
-
 <div class="overlay" id="leadModal">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -845,7 +825,6 @@ window.fbUpdateLead=async(id,data)=>{sd('syncing');try{await updateDoc(doc(db,'l
 window.fbSaveSharedKey=async(key)=>{try{await updateDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e){try{const {setDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");await setDoc(doc(db,'config','shared'),{anthropicKey:key,updatedAt:new Date().toISOString()});}catch(e2){console.error('Config save failed:',e2);}}};
 window.fbLoadSharedKey=async()=>{try{const {getDoc}=await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");const snap=await getDoc(doc(db,'config','shared'));if(snap.exists()&&snap.data().anthropicKey){const k=snap.data().anthropicKey;if(!localStorage.getItem('cbs_akey')&&k){localStorage.setItem('cbs_akey',k);console.log('API key synced from shared config');}return k;}return null;}catch(e){return null;}};
 </script>
-
 <script>
 window._users=[];window._leads=[];window._usersLoaded=false;window._leadsLoaded=false;window._appReady=false;window._fbUser=null;
 let cFilter='all',cScope='mine',editId=null,cTemp='';
@@ -3837,7 +3816,6 @@ function openLightbox(src) {
   document.body.appendChild(lb);
 }
 </script>
-
 <script>
 // ── MISSING FUNCTIONS ────────────────────────────────────────────────
 function resetUsage(){
