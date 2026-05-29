@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Coastal Prospector</title>
@@ -74,10 +74,10 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;h
 /* ── FORMS ──────────────────────────────────────────────────────── */
 .field{margin-bottom:14px}
 .field label,.field2 label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);margin-bottom:5px}
-.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);color:var(--txt);background:var(--surf)}
+.field input,.field select,.field textarea{width:100%;padding:10px 12px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:16px;font-family:var(--ff);color:var(--txt);background:var(--surf)}
 .field textarea{min-height:72px;resize:vertical}
 .field2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.field2 input,.field2 select{width:100%;padding:10px 12px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);color:var(--txt);background:var(--surf)}
+.field2 input,.field2 select{width:100%;padding:10px 12px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:16px;font-family:var(--ff);color:var(--txt);background:var(--surf)}
 /* ── LEAD LIST ──────────────────────────────────────────────────── */
 .lead-item{background:var(--surf);border-radius:var(--r);box-shadow:var(--sh);padding:12px 14px;margin-bottom:9px;border-left:4px solid var(--bord);cursor:pointer;position:relative;transition:opacity .15s}
 .lead-item:active{opacity:.85}
@@ -93,7 +93,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;h
 /* ── SEARCH / FILTERS ───────────────────────────────────────────── */
 .sbar{position:relative;margin-bottom:10px}
 .sbar svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--txth)}
-.sbar input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:14px;font-family:var(--ff);background:var(--surf);color:var(--txt)}
+.sbar input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:16px;font-family:var(--ff);background:var(--surf);color:var(--txt)}
 .pills{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;scrollbar-width:none}
 .pills::-webkit-scrollbar{display:none}
 .pill{background:var(--surf);border:1.5px solid var(--bord);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:var(--txt2)}
@@ -117,7 +117,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;h
 /* ── DYNAMIC ENTRIES (contacts, printers) ─────────────────────── */
 .ce{background:var(--bg);border:1px solid var(--bord);border-radius:var(--rsm);padding:10px;margin-bottom:7px;position:relative}
 .crm{position:absolute;top:7px;right:7px;background:none;border:none;color:var(--txth);font-size:20px;cursor:pointer;line-height:1;padding:0}
-.ce input,.ce select{width:100%;padding:7px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:13px;font-family:var(--ff);color:var(--txt);background:var(--surf);margin-bottom:5px}
+.ce input,.ce select{width:100%;padding:7px 10px;border:1.5px solid var(--bord);border-radius:var(--rsm);font-size:16px;font-family:var(--ff);color:var(--txt);background:var(--surf);margin-bottom:5px}
 .ce input:last-child,.ce select:last-child{margin-bottom:0}
 .add-entry-btn{background:none;border:1.5px dashed var(--bord);border-radius:var(--rsm);padding:8px 14px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer;color:var(--txt2);width:100%;margin-bottom:14px}
 /* ── MODAL ──────────────────────────────────────────────────────── */
@@ -206,6 +206,8 @@ body.dark{
   --bg:#0d1b2a;--surf:#1a2740;--bord:#253a52;
   --txt:#e8f0f7;--txt2:#7a9ab5;--txth:#4a6a85;--goldp:#1e2d1e;
 }
+
+input,select,textarea{font-size:16px !important}
 </style>
 </head>
 <body>
