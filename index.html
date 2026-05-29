@@ -19,7 +19,7 @@
   --ff:'SF Pro Text',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --fd:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
-body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;overflow:hidden}
+body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;height:100vh;overflow:hidden}
 /* ── LAYOUT ────────────────────────────────────────────────────── */
 #loadingScreen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9999}
 #loadingScreen .brand{font-family:var(--fd);font-size:28px;font-weight:700;color:#fff}
@@ -30,7 +30,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;o
 .login-card h2{font-family:var(--fd);font-size:20px;margin-bottom:16px;color:var(--navy)}
 .login-err{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
 .remember-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;color:var(--txt2)}
-#app{display:none;flex-direction:column;height:100dvh}
+#app{display:none;flex-direction:column;height:100dvh;height:100vh}
 .hdr{background:var(--navy);color:#fff;padding:env(safe-area-inset-top,12px) 16px 10px;padding-top:max(env(safe-area-inset-top,0px),12px);flex-shrink:0}
 .hdr-row{display:flex;align-items:center;justify-content:space-between}
 .brand{font-family:var(--fd);font-size:18px;font-weight:700;color:#fff}
@@ -44,7 +44,7 @@ body{font-family:var(--ff);background:var(--bg);color:var(--txt);height:100dvh;o
 .sync-dot.off{background:var(--red)}
 .offline-badge{display:none;font-size:9px;font-weight:700;background:var(--red);color:#fff;padding:2px 6px;border-radius:10px;margin-left:6px;vertical-align:middle}
 .content{flex:1;overflow:hidden;position:relative}
-.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(70px + env(safe-area-inset-bottom,0px));display:none}
+.screen{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px calc(62px + env(safe-area-inset-bottom,0px));display:none}
 .screen.active{display:block}
 .screen::-webkit-scrollbar{display:none}
 #screen-map{padding:0;overflow:hidden}
@@ -462,7 +462,10 @@ body.dark{
 <!-- LEAD FORM MODAL -->
 <div class="overlay" id="leadModal">
   <div class="modal">
-    <div class="modal-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 15px 0;position:sticky;top:0;background:var(--surf);z-index:10">
+      <div class="modal-handle" style="margin:0;flex:1"></div>
+      <button onclick="closeModal('leadModal')" style="background:none;border:none;font-size:28px;color:var(--txth);cursor:pointer;line-height:1;padding:0 0 0 10px">×</button>
+    </div>
     <div class="modal-title" id="leadModalTitle">New Prospect</div>
     <div class="modal-body">
 
@@ -508,7 +511,8 @@ body.dark{
       <button type="button" onclick="toggleField('hubspotIdRow')" style="background:none;border:none;color:var(--txth);font-size:11px;cursor:pointer;font-family:var(--ff);text-decoration:underline;margin-bottom:14px;padding:0">+ Link to HubSpot company</button>
 
       <!-- Contacts -->
-      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">👤 Contacts</div>
+      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">👤 Who I Spoke To</div>
+      <div style="font-size:11px;color:var(--txth);margin-bottom:8px">Names and contact info for people you met.</div>
       <div id="cCont"></div>
       <button class="add-entry-btn" onclick="addContact()">+ Add Contact</button>
 
@@ -566,7 +570,8 @@ body.dark{
       <div class="field"><label>Lease Company</label><input type="text" id="f_leaseco" placeholder="e.g. GreatAmerica"></div>
 
       <!-- Need to reach -->
-      <div class="field"><label>Need to Reach</label></div>
+      <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px;margin-top:6px">🎯 Who I Still Need to Reach</div>
+      <div style="font-size:11px;color:var(--txth);margin-bottom:8px">Decision makers or contacts you haven't spoken to yet.</div>
       <div id="nCont"></div>
       <button class="add-entry-btn" onclick="addNeedContact()">+ Add Person to Reach</button>
 
@@ -1677,6 +1682,13 @@ function renderToday(){
   } else {
     h+='<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><p>No visits today</p><small>Get out there and prospect!</small></div>';
   }
+  if(sorted.length){
+    var todayDs=today();
+    var eb2='<button data-ds="'+todayDs+'" onclick="exportDay(this.dataset.ds)"';
+    eb2+=' style="margin-top:4px;width:100%;background:var(--surf);color:var(--txt2);border:1.5px solid var(--bord);border-radius:var(--rsm);padding:10px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px">';
+    eb2+='&#x2B07; Export Today</button>';
+    h+=eb2;
+  }
   el.innerHTML=h;
 }
 
@@ -1756,6 +1768,14 @@ function renderCalDetail(ds,visits,appts){
     h+='<div style="font-size:13px;color:var(--txth);text-align:center;padding:8px 0">No activity on this day.</div>';
   }
   h+='<button data-ds="'+ds+'" onclick="openApptModal(this.dataset.ds)" style="margin-top:8px;width:100%;background:var(--goldp);color:var(--navy);border:1px solid var(--gold);border-radius:var(--rsm);padding:9px;font-size:13px;font-weight:600;font-family:var(--ff);cursor:pointer">+ Schedule Appointment</button>';
+  if(visits.length){
+    var eb='<button data-ds="'+ds+'" onclick="exportDay(this.dataset.ds)"';
+    eb+=' style="margin-top:7px;width:100%;background:var(--bg);color:var(--txt2)';
+    eb+=';border:1.5px solid var(--bord);border-radius:var(--rsm);padding:8px';
+    eb+=';font-size:12px;font-weight:600;font-family:var(--ff);cursor:pointer">';
+    eb+='Export This Day</button>';
+    h+=eb;
+  }
   el.innerHTML=h;el.style.display='block';
 }
 
@@ -2407,6 +2427,97 @@ var si=$('searchInput');if(si)si.addEventListener('keydown',function(e){if(e.key
 // ── KICK OFF ───────────────────────────────────────────────────
 // refreshAllUI is called by Firebase listener when data arrives
 // onAppReady is called once auth + data are both ready
+
+// ── DAY EXPORT ────────────────────────────────────────────────
+function exportDay(dateStr){
+  var d = new Date(dateStr + 'T12:00:00');
+  var label = d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  var uid = myId();
+  var u = cu();
+  var mine = (window._leads||[]).filter(function(l){return l.userId===uid;});
+
+  // Collect all visits on this day
+  var visits = [];
+  mine.forEach(function(l){
+    (l.visits||[]).forEach(function(v){
+      if(localDate(v.date)===dateStr){
+        visits.push({lead:l, visit:v, dt:new Date(v.date)});
+      }
+    });
+  });
+  visits.sort(function(a,b){return a.dt-b.dt;});
+
+  if(!visits.length){
+    showToast('No visits on this day to export');
+    return;
+  }
+
+  var lines = [];
+  lines.push('VISIT REPORT — ' + label);
+  lines.push('Rep: ' + (u.name||''));
+  lines.push('='.repeat(50));
+  lines.push('');
+
+  visits.forEach(function(item, i){
+    var l = item.lead;
+    var v = item.visit;
+    var t = item.dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+
+    lines.push((i+1) + '. ' + (l.bizName||'Unnamed') + (l.starred?' ⭐':''));
+    if(l.address)    lines.push('   Address:     ' + l.address);
+    if(l.bizType)    lines.push('   Type:        ' + l.bizType);
+    if(l.temp)       lines.push('   Temperature: ' + l.temp.toUpperCase());
+    if(l.status)     lines.push('   Status:      ' + l.status);
+    lines.push('   Visited:     ' + t);
+
+    // Contacts spoke to
+    if(l.contacts && l.contacts.length){
+      var cNames = l.contacts.filter(function(c){return c.name;}).map(function(c){
+        return c.name + (c.title?' ('+c.title+')':'');
+      });
+      if(cNames.length) lines.push('   Spoke to:   ' + cNames.join(', '));
+    }
+    // Need to reach
+    if(l.needContacts && l.needContacts.length){
+      var nNames = l.needContacts.filter(function(c){return c.name;}).map(function(c){return c.name;});
+      if(nNames.length) lines.push('   Need to reach: ' + nNames.join(', '));
+    }
+    // Phone/email
+    if(l.phoneEmails && l.phoneEmails.length){
+      l.phoneEmails.forEach(function(p){
+        if(p.value) lines.push('   ' + (p.type||'Contact') + ':    ' + p.value);
+      });
+    }
+    // Printers
+    if(l.printerCount) lines.push('   Printers:    ' + l.printerCount + (l.totalPages?' (~'+l.totalPages+' pages/mo)':''));
+    if(l.printers && l.printers.length){
+      l.printers.filter(function(p){return p.model||p.brand;}).forEach(function(p){
+        lines.push('   Machine:     ' + [(p.brand||''),(p.model||'')].filter(Boolean).join(' '));
+      });
+    }
+    // Lease
+    if(l.hasLease==='yes'){
+      var leaseInfo = 'Has lease';
+      if(l.leaseco) leaseInfo += ' with ' + l.leaseco;
+      if(l.leaseend) leaseInfo += ', ends ' + fds(l.leaseend);
+      if(l.leaseamt) leaseInfo += ', $' + l.leaseamt + '/mo';
+      lines.push('   Lease:       ' + leaseInfo);
+    }
+    // Follow-up
+    if(l.followupDate) lines.push('   Follow-up:   ' + fds(l.followupDate));
+    // Visit notes
+    if(v.notes) lines.push('   Notes:       ' + v.notes);
+    // Website
+    if(l.website) lines.push('   Website:     ' + l.website);
+    lines.push('');
+  });
+
+  lines.push('-'.repeat(50));
+  lines.push('Total stops: ' + visits.length);
+
+  dl(lines.join('\n'), 'visit-report-'+dateStr+'.txt', 'text/plain');
+  showToast('Exported ' + visits.length + ' visit' + (visits.length>1?'s':''));
+}
 </script>
 </body>
 </html>
