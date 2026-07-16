@@ -2290,14 +2290,171 @@ function loadPhotos(lid){
 // ── EXPORT / IMPORT ───────────────────────────────────────────
 function exportHubspot(){
   var leads=(window._leads||[]).filter(function(l){return l.userId===myId();});
-  var rows=[['Record ID','Company name','Company owner','Phone Number','City','Country/Region','Industry','Street Address','HubSpot Owner ID']];
   var u=cu();
+
+  // HubSpot column headers
+  // Native fields map directly; everything else goes into "Note"
+  var headers=[
+    'Record ID',
+    'Company name',
+    'Company owner',
+    'Phone Number',
+    'Street Address',
+    'City',
+    'State/Region',
+    'Zip',
+    'Country/Region',
+    'Website URL',
+    'Industry',
+    'Number of Employees',
+    'Note'
+  ];
+
+  var rows=[headers];
+
   leads.forEach(function(l){
-    var phone=(l.phoneEmails||[]).find(function(p){return p.type&&p.type.includes('Phone');});
-    rows.push([l.hubspotId||'',l.bizName||'',u.name||'',(phone?phone.value:''),'','US',l.bizType||'',(l.address||''),'']);
+    // ── Native HubSpot fields ──────────────────────────────
+    var phone='';
+    (l.phoneEmails||[]).forEach(function(p){
+      if(!phone&&p.value&&(p.type==='Phone'||p.type==='Cell'))phone=p.value;
+    });
+
+    // Parse address into parts
+    var addrFull=l.address||'';
+    var street='';var city='';var state='CA';var zip='';
+    // Try to split "123 Main St, Redding, CA 96002"
+    var addrParts=addrFull.split(',').map(function(s){return s.trim();});
+    if(addrParts.length>=3){
+      street=addrParts[0];
+      city=addrParts[1];
+      var stateZip=addrParts[2].trim().split(' ');
+      state=stateZip[0]||'CA';
+      zip=stateZip[1]||'';
+    } else if(addrParts.length===2){
+      street=addrParts[0];city=addrParts[1];
+    } else {
+      street=addrFull;
+    }
+
+    // ── Build the Note ─────────────────────────────────────
+    var noteLines=[];
+
+    // Status & temperature
+    var statusLine=[];
+    if(l.status)statusLine.push('Status: '+l.status);
+    if(l.temp)statusLine.push('Temp: '+l.temp.charAt(0).toUpperCase()+l.temp.slice(1));
+    if(l.starred)statusLine.push('⭐ Starred');
+    if(statusLine.length)noteLines.push(statusLine.join(' | '));
+
+    // Follow-up date
+    if(l.followupDate)noteLines.push('Follow-up date: '+fds(l.followupDate));
+
+    // Contacts (who you spoke to)
+    var contacts=(l.contacts||[]).filter(function(c){return c.name;});
+    if(contacts.length){
+      noteLines.push('');
+      noteLines.push('CONTACTS:');
+      contacts.forEach(function(c){
+        var line='  '+c.name;
+        if(c.title)line+=' ('+c.title+')';
+        if(c.phone)line+=' | '+c.phone;
+        if(c.email)line+=' | '+c.email;
+        noteLines.push(line);
+      });
+    }
+
+    // Need to reach
+    var needContacts=(l.needContacts||[]).filter(function(c){return c.name;});
+    if(needContacts.length){
+      noteLines.push('');
+      noteLines.push('STILL NEED TO REACH:');
+      needContacts.forEach(function(c){noteLines.push('  '+c.name);});
+    }
+
+    // Phone & email entries
+    var pes=(l.phoneEmails||[]).filter(function(p){return p.value;});
+    if(pes.length){
+      noteLines.push('');
+      noteLines.push('PHONE & EMAIL:');
+      pes.forEach(function(p){
+        noteLines.push('  '+(p.type||'')+(p.label?' ('+p.label+')':'')+': '+p.value);
+      });
+    }
+
+    // Printers
+    var hasPrinterInfo=l.printerCount||l.totalPages||(l.printers&&l.printers.filter(function(p){return p.model||p.brand;}).length);
+    if(hasPrinterInfo){
+      noteLines.push('');
+      noteLines.push('PRINTERS & EQUIPMENT:');
+      if(l.printerCount)noteLines.push('  Count: '+l.printerCount);
+      if(l.totalPages)noteLines.push('  Est. pages/month: '+l.totalPages);
+      (l.printers||[]).forEach(function(p){
+        if(p.brand||p.model){
+          var pl='  Machine: '+[(p.brand||''),(p.model||'')].filter(Boolean).join(' ');
+          if(p.color)pl+=' ('+p.color+')';
+          if(p.pages)pl+=' ~'+p.pages+' pages/mo';
+          noteLines.push(pl);
+        }
+      });
+    }
+
+    // Lease info
+    if(l.hasLease){
+      noteLines.push('');
+      noteLines.push('LEASE INFO:');
+      var leaseStatus={yes:'Has active lease',no:'Owns equipment',month:'Month-to-month'};
+      noteLines.push('  '+( leaseStatus[l.hasLease]||l.hasLease));
+      if(l.leaseco)noteLines.push('  Company: '+l.leaseco);
+      if(l.leaseend)noteLines.push('  Lease end: '+fds(l.leaseend));
+      if(l.leaseamt)noteLines.push('  Monthly: $'+l.leaseamt);
+    }
+
+    // Visit history — each visit with exact date
+    var visits=(l.visits||[]).slice().sort(function(a,b){return new Date(a.date)-new Date(b.date);});
+    if(visits.length){
+      noteLines.push('');
+      noteLines.push('VISIT HISTORY:');
+      visits.forEach(function(v){
+        var dt=new Date(v.date);
+        var dateStr=dt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+        var timeStr=dt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        noteLines.push('  '+dateStr+' at '+timeStr);
+        if(v.notes)noteLines.push('    Notes: '+v.notes);
+      });
+    }
+
+    // Website (also goes in native column, but include in note too for reference)
+    if(l.website)noteLines.push('');
+    if(l.website)noteLines.push('Website: '+l.website);
+
+    var note=noteLines.join('\n').trim();
+
+    rows.push([
+      l.hubspotId||'',
+      l.bizName||'',
+      u.name||'',
+      phone,
+      street,
+      city,
+      state,
+      zip,
+      'US',
+      l.website||'',
+      l.bizType||'',
+      l.employees||'',
+      note
+    ]);
   });
-  var csv=rows.map(function(r){return r.map(function(c){return'"'+String(c).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+
+  // Build CSV — note field may contain newlines, so we must quote properly
+  var csv=rows.map(function(r){
+    return r.map(function(c){
+      return '"'+String(c||'').replace(/"/g,'""')+'"';
+    }).join(',');
+  }).join('\n');
+
   dl(csv,'hubspot-export-'+today()+'.csv','text/csv');
+  showToast('Exported '+leads.length+' companies');
 }
 function exportBackup(){
   var leads=(window._leads||[]).filter(function(l){return l.userId===myId();});
