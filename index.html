@@ -2697,28 +2697,47 @@ function bizNameInput(val){
   var q = (val || '').trim();
   hideBizDropdown();
   if(q.length < 3) return;
+  clearTimeout(_bizSearchTimer);
   if(!ensureGoogleReady()){
-    // Google not loaded yet — retry silently after delay
-    clearTimeout(_bizSearchTimer);
-    _bizSearchTimer = setTimeout(function(){ bizNameInput(val); }, 500);
+    // Google not loaded yet — retry with fresh input value
+    _bizSearchTimer = setTimeout(function(){
+      var inp = document.getElementById('f_biz');
+      var fresh = inp ? inp.value.trim() : q;
+      if(fresh.length >= 3) bizNameInput(fresh);
+    }, 800);
     return;
   }
-  clearTimeout(_bizSearchTimer);
   _bizSearchTimer = setTimeout(function(){ runBizSearch(q); }, 300);
 }
 
 function runBizSearch(q){
-  if(!ensureGoogleReady()) return;
+  if(!ensureGoogleReady()){
+    showToast('Google Maps still loading — try again in a moment');
+    return;
+  }
+  // Show searching indicator
+  var input = document.getElementById('f_biz');
+  if(input){
+    var wrap = input.parentElement;
+    hideBizDropdown();
+    var searching = document.createElement('div');
+    searching.id = 'bizDropdown';
+    searching.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:var(--surf);'
+      + 'border:1.5px solid var(--navy);border-top:none;border-radius:0 0 var(--rsm) var(--rsm);'
+      + 'z-index:9999;padding:11px 14px;font-size:13px;color:var(--txth)';
+    searching.textContent = 'Searching Google…';
+    wrap.style.position = 'relative';
+    wrap.appendChild(searching);
+    _bizDropdown = searching;
+  }
   if(!_bizSessionToken){
     _bizSessionToken = new google.maps.places.AutocompleteSessionToken();
   }
   var svc = new google.maps.places.AutocompleteService();
-  // Bias to NorCal
   var norcalBounds = new google.maps.LatLngBounds(
     new google.maps.LatLng(38.5, -124.5),
     new google.maps.LatLng(42.2, -119.5)
   );
-  // Add city hint if user typed one
   var cityHint = (document.getElementById('f_city') || {}).value || 'Redding CA';
   svc.getPlacePredictions({
     input: q + ' ' + cityHint,
@@ -2728,6 +2747,22 @@ function runBizSearch(q){
   }, function(predictions, status){
     if(status !== google.maps.places.PlacesServiceStatus.OK || !predictions){
       hideBizDropdown();
+      // Show helpful error
+      var inp2 = document.getElementById('f_biz');
+      if(inp2){
+        var w2 = inp2.parentElement;
+        var noRes = document.createElement('div');
+        noRes.id = 'bizDropdown';
+        noRes.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:var(--surf);'
+          + 'border:1.5px solid var(--bord);border-top:none;border-radius:0 0 var(--rsm) var(--rsm);'
+          + 'z-index:9999;padding:11px 14px;font-size:13px;color:var(--txth)';
+        noRes.textContent = status === 'REQUEST_DENIED'
+          ? 'Google API error — check that Places API is enabled'
+          : 'No results found — you can still type the address manually';
+        w2.appendChild(noRes);
+        _bizDropdown = noRes;
+        setTimeout(hideBizDropdown, 3000);
+      }
       return;
     }
     showBizDropdown(predictions);
