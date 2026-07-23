@@ -210,7 +210,7 @@ body.dark{
 input,select,textarea{font-size:16px !important}
 </style>
 </head>
-<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6bCyTGz2jycLDl8ws0tTe1EruHf2EVEI&libraries=places&callback=initGooglePlaces" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC6bCyTGz2jycLDl8ws0tTe1EruHf2EVEI&libraries=places" async></script>
 <body>
 
 <!-- ── LOADING ─────────────────────────────────────────── -->
@@ -479,8 +479,7 @@ input,select,textarea{font-size:16px !important}
       <div class="card-hd" style="padding:0 0 8px;margin-bottom:11px">🏢 Business Info</div>
       <div class="field"><label>Business Name *</label>
         <div style="position:relative">
-          <input type="text" id="f_biz" placeholder="Start typing a business name…" autocomplete="off"
-            style="padding-right:36px">
+          <input type="text" id="f_biz" placeholder="Start typing a business name…" autocomplete="off" oninput="bizNameInput(this.value)" onblur="setTimeout(hideBizDropdown,200)">
           <svg style="position:absolute;right:10px;top:50%;transform:translateY(-50%);width:16px;height:16px;stroke:var(--txth);pointer-events:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </div>
         <div style="font-size:11px;color:var(--txth);margin-top:4px">Type a business name — Google will find it and fill in the address, phone, and website automatically.</div>
@@ -2683,117 +2682,174 @@ function exportDay(dateStr){
 }
 
 
-// ── GOOGLE PLACES AUTOCOMPLETE ────────────────────────────────
-var _placesAutocomplete = null;
-var _placesService = null;
 
-function initGooglePlaces(){
-  // Called by Google Maps script when loaded
-  window._googlePlacesReady = true;
-  // If the modal is already open, attach now
-  if(document.getElementById('f_biz')){
-    attachPlacesAutocomplete();
-  }
+// ── GOOGLE PLACES SEARCH ──────────────────────────────────────
+// Uses AutocompleteService API — no widget injection, full control
+var _bizSearchTimer = null;
+var _bizDropdown = null;
+var _bizSessionToken = null;
+
+function ensureGoogleReady(){
+  return !!(window.google && window.google.maps && window.google.maps.places);
 }
 
-function attachPlacesAutocomplete(){
-  var input = document.getElementById('f_biz');
-  if(!input || !window.google || !window.google.maps || !window.google.maps.places) return;
-  if(_placesAutocomplete) return; // already attached
+function bizNameInput(val){
+  var q = (val || '').trim();
+  hideBizDropdown();
+  if(q.length < 3) return;
+  if(!ensureGoogleReady()){
+    // Google not loaded yet — retry silently after delay
+    clearTimeout(_bizSearchTimer);
+    _bizSearchTimer = setTimeout(function(){ bizNameInput(val); }, 500);
+    return;
+  }
+  clearTimeout(_bizSearchTimer);
+  _bizSearchTimer = setTimeout(function(){ runBizSearch(q); }, 300);
+}
 
-  // Bias results to NorCal region
+function runBizSearch(q){
+  if(!ensureGoogleReady()) return;
+  if(!_bizSessionToken){
+    _bizSessionToken = new google.maps.places.AutocompleteSessionToken();
+  }
+  var svc = new google.maps.places.AutocompleteService();
+  // Bias to NorCal
   var norcalBounds = new google.maps.LatLngBounds(
-    new google.maps.LatLng(38.5, -124.5),  // SW corner
-    new google.maps.LatLng(42.2, -119.5)   // NE corner
+    new google.maps.LatLng(38.5, -124.5),
+    new google.maps.LatLng(42.2, -119.5)
   );
-
-  _placesAutocomplete = new google.maps.places.Autocomplete(input, {
+  // Add city hint if user typed one
+  var cityHint = (document.getElementById('f_city') || {}).value || 'Redding CA';
+  svc.getPlacePredictions({
+    input: q + ' ' + cityHint,
     bounds: norcalBounds,
-    strictBounds: false, // allow results outside bounds if nothing found inside
-    types: ['establishment'], // businesses only, not just addresses
-    fields: ['name','formatted_address','formatted_phone_number',
-             'website','geometry','address_components','types','business_status']
+    types: ['establishment'],
+    sessionToken: _bizSessionToken
+  }, function(predictions, status){
+    if(status !== google.maps.places.PlacesServiceStatus.OK || !predictions){
+      hideBizDropdown();
+      return;
+    }
+    showBizDropdown(predictions);
+  });
+}
+
+function showBizDropdown(predictions){
+  hideBizDropdown();
+  var input = document.getElementById('f_biz');
+  if(!input) return;
+  var wrap = input.parentElement;
+
+  var drop = document.createElement('div');
+  drop.id = 'bizDropdown';
+  drop.style.cssText = 'position:absolute;top:100%;left:0;right:0;background:var(--surf);'
+    + 'border:1.5px solid var(--navy);border-top:none;border-radius:0 0 var(--rsm) var(--rsm);'
+    + 'z-index:9999;max-height:220px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,.12)';
+
+  predictions.forEach(function(pred){
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--bord);font-size:14px';
+    var main = pred.structured_formatting.main_text || pred.description;
+    var secondary = pred.structured_formatting.secondary_text || '';
+    item.innerHTML = '<div style="font-weight:600;color:var(--txt)">' + esc(main) + '</div>'
+      + (secondary ? '<div style="font-size:11px;color:var(--txt2);margin-top:2px">' + esc(secondary) + '</div>' : '');
+    item.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    item.addEventListener('click', function(){
+      hideBizDropdown();
+      fetchPlaceDetails(pred.place_id, main);
+    });
+    drop.appendChild(item);
   });
 
-  // When user selects a result
-  _placesAutocomplete.addListener('place_changed', function(){
-    var place = _placesAutocomplete.getPlace();
-    if(!place || !place.geometry) return;
+  wrap.style.position = 'relative';
+  wrap.appendChild(drop);
+  _bizDropdown = drop;
+}
 
+function hideBizDropdown(){
+  if(_bizDropdown){ _bizDropdown.remove(); _bizDropdown = null; }
+  var old = document.getElementById('bizDropdown');
+  if(old) old.remove();
+}
+
+function fetchPlaceDetails(placeId, nameHint){
+  if(!ensureGoogleReady()) return;
+  // Show name immediately so it doesn't feel slow
+  var bizInput = document.getElementById('f_biz');
+  if(bizInput && nameHint) bizInput.value = nameHint;
+
+  var mapDiv = document.createElement('div');
+  document.body.appendChild(mapDiv);
+  var svc = new google.maps.places.PlacesService(mapDiv);
+  svc.getDetails({
+    placeId: placeId,
+    fields: ['name','formatted_address','formatted_phone_number',
+             'website','geometry','address_components','types'],
+    sessionToken: _bizSessionToken
+  }, function(place, status){
+    mapDiv.remove();
+    _bizSessionToken = null; // reset token after detail fetch
+    if(status !== google.maps.places.PlacesServiceStatus.OK || !place) return;
     fillFormFromPlace(place);
   });
-
-  // Keep a PlacesService for manual lookups
-  var mapDiv = document.createElement('div');
-  _placesService = new google.maps.places.PlacesService(mapDiv);
 }
 
 function fillFormFromPlace(place){
-  // ── Business name ──────────────────────────────────────────
+  // Business name
   var bizInput = document.getElementById('f_biz');
   if(bizInput && place.name) bizInput.value = place.name;
 
-  // ── Parse address components ───────────────────────────────
-  var streetNumber = '';
-  var streetName = '';
-  var city = '';
-  var state = '';
-  var zip = '';
-
+  // Parse address components
+  var streetNumber='', streetName='', city='', state='CA', zip='';
   (place.address_components || []).forEach(function(comp){
-    var types = comp.types || [];
-    if(types.includes('street_number'))   streetNumber = comp.long_name;
-    if(types.includes('route'))           streetName   = comp.long_name;
-    if(types.includes('locality'))        city         = comp.long_name;
-    if(types.includes('administrative_area_level_1')) state = comp.short_name;
-    if(types.includes('postal_code'))     zip          = comp.long_name;
+    var t = comp.types || [];
+    if(t.includes('street_number'))              streetNumber = comp.long_name;
+    if(t.includes('route'))                       streetName   = comp.long_name;
+    if(t.includes('locality'))                    city         = comp.long_name;
+    if(t.includes('administrative_area_level_1')) state        = comp.short_name;
+    if(t.includes('postal_code'))                 zip          = comp.long_name;
   });
-
   var street = [streetNumber, streetName].filter(Boolean).join(' ');
-  var fullAddr = place.formatted_address || [street, city, state, zip].filter(Boolean).join(', ');
+  var fullAddr = place.formatted_address
+    || [street, city, state + (zip?' '+zip:'')].filter(Boolean).join(', ');
 
   var addrInput = document.getElementById('f_addr');
   if(addrInput) addrInput.value = fullAddr;
 
   var cityInput = document.getElementById('f_city');
-  if(cityInput) cityInput.value = city;
+  if(cityInput && city) cityInput.value = city;
 
-  // ── Website ────────────────────────────────────────────────
+  // Website
   var webInput = document.getElementById('f_website');
   if(webInput && place.website){
     webInput.value = place.website.replace(/^https?:\/\//i,'').replace(/\/$/,'');
   }
 
-  // ── Phone ──────────────────────────────────────────────────
-  // Add to phoneEmails section if we have a phone
+  // Phone — fill into first empty Phone & Email entry
   if(place.formatted_phone_number){
-    // Find existing phone entry or create one
     var peCont = document.getElementById('peCont');
     if(peCont){
-      // Check if there's already a phone input
-      var existingPhones = peCont.querySelectorAll('input[data-f="value"]');
-      var firstEmpty = null;
-      existingPhones.forEach(function(inp){
-        if(!inp.value && !firstEmpty) firstEmpty = inp;
-      });
-      if(firstEmpty){
-        firstEmpty.value = place.formatted_phone_number;
-        // Set the type select to Phone
-        var ce = firstEmpty.closest('.ce');
-        if(ce){
-          var typeSelect = ce.querySelector('select[data-f="type"]');
+      var rows = peCont.querySelectorAll('.ce');
+      var filled = false;
+      rows.forEach(function(row){
+        if(filled) return;
+        var valInput = row.querySelector('input[data-f="value"]');
+        if(valInput && !valInput.value){
+          valInput.value = place.formatted_phone_number;
+          var typeSelect = row.querySelector('select[data-f="type"]');
           if(typeSelect) typeSelect.value = 'Phone';
-          var labelInput = ce.querySelector('input[data-f="label"]');
+          var labelInput = row.querySelector('input[data-f="label"]');
           if(labelInput && !labelInput.value) labelInput.value = 'Main';
+          filled = true;
         }
-      } else {
-        // Add a new phone entry
+      });
+      if(!filled){
         addPE({type:'Phone', label:'Main', value:place.formatted_phone_number});
       }
     }
   }
 
-  // ── GPS coordinates ────────────────────────────────────────
+  // GPS
   if(place.geometry && place.geometry.location){
     pendingLatLng = {
       lat: place.geometry.location.lat(),
@@ -2801,74 +2857,35 @@ function fillFormFromPlace(place){
     };
   }
 
-  // ── Business type ──────────────────────────────────────────
-  // Try to map Google's place types to our categories
+  // Business type
   var typeMap = {
-    'dentist':           'Medical / Dental',
-    'doctor':            'Medical / Dental',
-    'hospital':          'Medical / Dental',
-    'health':            'Medical / Dental',
-    'lawyer':            'Law Office',
-    'accounting':        'Accounting / Finance',
-    'finance':           'Accounting / Finance',
-    'insurance_agency':  'Insurance',
-    'real_estate_agency':'Real Estate',
-    'car_dealer':        'Auto / Dealership',
-    'car_repair':        'Auto / Dealership',
-    'general_contractor':'Construction',
-    'school':            'Education',
-    'university':        'Education',
-    'local_government_office':'Government',
-    'store':             'Retail',
-    'restaurant':        'Restaurant / Food',
-    'food':              'Restaurant / Food',
-    'manufacturer':      'Manufacturing',
+    'dentist':'Medical / Dental','doctor':'Medical / Dental','hospital':'Medical / Dental',
+    'lawyer':'Law Office','accounting':'Accounting / Finance',
+    'insurance_agency':'Insurance','real_estate_agency':'Real Estate',
+    'car_dealer':'Auto / Dealership','car_repair':'Auto / Dealership',
+    'general_contractor':'Construction','school':'Education','university':'Education',
+    'local_government_office':'Government','store':'Retail',
+    'restaurant':'Restaurant / Food','food':'Restaurant / Food',
   };
   var bizTypeSelect = document.getElementById('f_biztype');
   if(bizTypeSelect && !bizTypeSelect.value){
-    var placeTypes = place.types || [];
-    for(var i=0; i<placeTypes.length; i++){
-      var mapped = typeMap[placeTypes[i]];
-      if(mapped){ bizTypeSelect.value = mapped; break; }
-    }
+    (place.types || []).forEach(function(t){
+      if(!bizTypeSelect.value && typeMap[t]) bizTypeSelect.value = typeMap[t];
+    });
   }
 
-  // Show confirmation toast
-  var filled = ['business name'];
-  if(fullAddr) filled.push('address');
-  if(place.website) filled.push('website');
-  if(place.formatted_phone_number) filled.push('phone');
-  showToast('Filled: ' + filled.join(', '));
+  // Show what was filled
+  var filled2 = ['name'];
+  if(fullAddr) filled2.push('address');
+  if(place.website) filled2.push('website');
+  if(place.formatted_phone_number) filled2.push('phone');
+  showToast('Auto-filled: ' + filled2.join(', '));
 }
 
-// Attach autocomplete whenever the lead modal opens
-var _origOpenNewLead = openNewLead;
-openNewLead = function(){
-  _origOpenNewLead();
-  setTimeout(function(){
-    _placesAutocomplete = null; // reset so it re-attaches to new input
-    if(window._googlePlacesReady){
-      attachPlacesAutocomplete();
-    }
-  }, 100);
-};
-
-var _origOpenEditLead = openEditLead;
-openEditLead = function(id){
-  _origOpenEditLead(id);
-  setTimeout(function(){
-    _placesAutocomplete = null;
-    if(window._googlePlacesReady){
-      attachPlacesAutocomplete();
-    }
-  }, 100);
-};
-
-// Remove old OSM autocomplete functions (replaced by Google)
+// No-op stubs (old OSM functions referenced elsewhere)
 function addrAutocomplete(){}
-function closeAddrDropdown(){
-  var b=document.getElementById('addrSuggestions');if(b)b.style.display='none';
-}
+function closeAddrDropdown(){}
+
 </script>
 </body>
 </html>
